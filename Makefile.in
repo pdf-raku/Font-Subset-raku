@@ -1,0 +1,41 @@
+SRC=src
+TRAVIS=https://travis-ci.org/p6-xml/LibXML-raku
+
+all : lib
+
+lib : resources/libraries/%LIB-NAME%
+
+# 'all', with compilation warnings and debug symbols enabled
+debug :
+	%MAKE% "DBG=-Wall -DDEBUG -g"  all
+
+coverage :
+	%MAKE% "DBG=-fprofile-arcs -ftest-coverage" "LD_DBG=-coverage -lgcov" all
+
+resources/libraries/%LIB-NAME% : $(SRC)/font_subset%O% $(SRC)/font_subset__truetype%O%
+	%LD% %LDSHARED% %LDFLAGS% %LDOUT%resources/libraries/%LIB-NAME% \
+	$(SRC)/font_subset%O% $(SRC)/font_subset__truetype%O% \
+	%LIB-LDFLAGS% $(LD_DBG) 
+
+$(SRC)/font_subset%O% : $(SRC)/font_subset.c $(SRC)/font_subset.h $(SRC)/font_subset__truetype.h
+	%CC% -I $(SRC) -c %CCSHARED% %CCFLAGS% %CCOUT%$(SRC)/font_subset%O% $(SRC)/font_subset.c %LIB-CFLAGS% $(DBG)
+
+$(SRC)/font_subset__truetype%O% : $(SRC)/font_subset.c $(SRC)/font_subset.h $(SRC)/font_subset__truetype.h
+	%CC% -I $(SRC) -c %CCSHARED% %CCFLAGS% %CCOUT%$(SRC)/font_subset__truetype%O% $(SRC)/font_subset__truetype.c %LIB-CFLAGS% $(DBG)
+
+
+test : all
+	@prove -e"raku -I ." t
+
+loudtest : all
+	@prove -e"raku -I ." -v t
+
+xtest : all
+	@prove -e"raku -I ." -r t xt
+
+clean :
+	@rm -f $(SRC)/font_subset*%O% resources/libraries/*%LIB-NAME%
+
+realclean : clean
+	@rm -f Makefile docs/*.md docs/*/*.md
+
