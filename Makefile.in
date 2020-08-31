@@ -20,7 +20,7 @@ resources/libraries/%LIB-NAME% : $(SRC)/font_subset%O% $(SRC)/font_subset__truet
 $(SRC)/font_subset%O% : $(SRC)/font_subset.c $(SRC)/font_subset.h $(SRC)/font_subset__truetype.h
 	%CC% -I $(SRC) -c %CCSHARED% %CCFLAGS% %CCOUT%$(SRC)/font_subset%O% $(SRC)/font_subset.c %LIB-CFLAGS% $(DBG)
 
-$(SRC)/font_subset__truetype%O% : $(SRC)/font_subset.c $(SRC)/font_subset.h $(SRC)/font_subset__truetype.h
+$(SRC)/font_subset__truetype%O% : $(SRC)/font_subset__truetype.c $(SRC)/font_subset.h $(SRC)/font_subset__truetype.h
 	%CC% -I $(SRC) -c %CCSHARED% %CCFLAGS% %CCOUT%$(SRC)/font_subset__truetype%O% $(SRC)/font_subset__truetype.c %LIB-CFLAGS% $(DBG)
 
 
