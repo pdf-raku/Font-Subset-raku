@@ -8,7 +8,7 @@
 struct _fontSubset {
     FT_Face font;
     size_t len;
-    FT_UInt *charset;
+    FT_ULong *charset;
     FT_UInt *gids;
     char *fail;
 };
@@ -16,12 +16,15 @@ struct _fontSubset {
 typedef struct _fontSubset fontSubset;
 typedef fontSubset *fontSubsetPtr;
 
+#define FONT_SUBSET_WARN(msg) fprintf(stderr, __FILE__ ":%d: %s\n", __LINE__, (msg));
+
 #ifdef _WIN32
 #define DLLEXPORT __declspec(dllexport)
 #else
 #define DLLEXPORT extern
 #endif
 
-DLLEXPORT void* font_subset_create(FT_Face font, FT_UInt*, size_t, size_t*);
+DLLEXPORT fontSubsetPtr font_subset_create(FT_Face font, FT_ULong*, size_t);
+DLLEXPORT void font_subset_done(fontSubsetPtr);
 
 #endif /* __FONT_SUBSET_H */

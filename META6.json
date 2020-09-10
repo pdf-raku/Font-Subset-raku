@@ -7,8 +7,8 @@
   "build-depends": [
   ],
   "depends": [
-    "CStruct::Packing",
-    "Font::FreeType"
+      "Font::FreeType",
+      "Font::TTF"
   ],
   "description": "Font subsetting utility",
   "license": "Artistic-2.0",
@@ -17,8 +17,7 @@
   "provides": {
     "Font::Subset": "lib/Font/Subset.rakumod",
     "Font::Subset::Raw": "lib/Font/Subset/Raw.rakumod",
-    "Font::Subset::Raw::Defs": "lib/Font/Subset/Raw/Defs.rakumod",
-    "Font::TTF": "lib/Font/TTF.rakumod"
+    "Font::Subset::Raw::Defs": "lib/Font/Subset/Raw/Defs.rakumod"
   },
   "resources": [
     "libraries/font-subset"

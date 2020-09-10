@@ -11,17 +11,17 @@ static void _font_subset_fail(fontSubsetPtr self, const char* msg) {
     self->fail = strdup(msg);
 }
 
-static void _font_subset_init(fontSubsetPtr self, FT_Face font, FT_UInt *charset, size_t len) {
+DLLEXPORT fontSubsetPtr
+font_subset_create(FT_Face font, FT_ULong *charset, size_t len) {
     size_t i;
-
-    FT_Reference_Face(font);
+    fontSubsetPtr self = (fontSubsetPtr)malloc(sizeof(struct _fontSubset));
     self->font = font;
     self->len = 0;
-    self->charset = calloc(len + 1, sizeof(FT_UInt));
+    self->charset = calloc(len + 1, sizeof(FT_ULong));
     self->gids = calloc(len + 1, sizeof(FT_UInt));
     self->fail = NULL;
     for (i = 0; i < len; i++) {
-        FT_UInt code = charset[i];
+        FT_ULong code = charset[i];
         FT_UInt gid;
         if (i && code <= charset[i-1]) {
             _font_subset_fail(self, "charset is not unique and in ascending order");
@@ -34,43 +34,29 @@ static void _font_subset_init(fontSubsetPtr self, FT_Face font, FT_UInt *charset
             self->len++;
         }
     }
+    self->gids[self->len] = 0;
+    self->charset[self->len] = 0;
+    return self;
 }
 
-static void* _font_subset_write(fontSubsetPtr self, size_t *len) {
-    void* rv = NULL;
-    *len = 0;
-    if (strcmp(FT_Get_X11_Font_Format(self->font), "TrueType") == 0) {
-        rv = font_subset_write__truetype(self, len);
-    }
-    else {
-        _font_subset_fail(self, "can only handle TrueType fonts ATM");
-    }
-    return rv;
-}
-
-static void _done(FT_UInt** p) {
+static void _done(void** p) {
     if (*p != NULL) {
         free(*p);
         *p = NULL;
     }
 }
 
-static void _font_subset_done(fontSubsetPtr* _self) {
-    fontSubsetPtr self = *_self;
+DLLEXPORT void
+font_subset_done(fontSubsetPtr self) {
 
-    _done( &(self->charset) );
-    _done( &(self->gids) );
+    if (self->fail) {
+        char msg[120];
+        snprintf(msg, sizeof(msg), "uncaught failure on fontSubsetPtr %p destruction: %s", self, self->fail);
+        FONT_SUBSET_WARN(msg);
+        _done((void**) &(self->fail) );
+    }
+    _done((void**) &(self->charset) );
+    _done((void**) &(self->gids) );
 
     free(self);
-    self = NULL;
-}
-
-
-DLLEXPORT void* font_subset_create(FT_Face font, FT_UInt* codes, size_t codes_len, size_t* rv_len) {
-    void *rv;
-    fontSubsetPtr self = (fontSubsetPtr)malloc(sizeof(struct _fontSubset));
-    _font_subset_init(self, font, codes, codes_len);
-    rv = _font_subset_write(self, rv_len);
-    _font_subset_done(&self);
-    return rv;
 }
