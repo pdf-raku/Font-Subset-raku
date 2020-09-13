@@ -6,18 +6,23 @@
   ],
   "build-depends": [
   ],
-  "depends": [
-      "Font::FreeType",
-      "Font::TTF"
+    "depends": [
+      "CStruct::Packing",
+      "Font::FreeType"
   ],
   "description": "Font subsetting utility",
   "license": "Artistic-2.0",
   "name": "Font::Subset",
   "perl": "6.*",
   "provides": {
-    "Font::Subset": "lib/Font/Subset.rakumod",
-    "Font::Subset::Raw": "lib/Font/Subset/Raw.rakumod",
-    "Font::Subset::Raw::Defs": "lib/Font/Subset/Raw/Defs.rakumod"
+      "Font::Subset": "lib/Font/Subset.rakumod",
+      "Font::Subset::Raw": "lib/Font/Subset/Raw.rakumod",
+      "Font::Subset::Raw::Defs": "lib/Font/Subset/Raw/Defs.rakumod",
+      "Font::Subset::TTF": "lib/Font/Subset/TTF.rakumod",
+      "Font::Subset::TTF::Defs": "lib/Font/Subset/TTF/Defs.rakumod",
+      "Font::Subset::TTF::Table": "lib/Font/Subset/TTF/Table.rakumod",
+      "Font::Subset::TTF::Table::CMap": "lib/Font/Subset/TTF/Table/CMap.rakumod",
+      "Font::Subset::TTF::Table::Locations": "lib/Font/Subset/TTF/Table/Locations.rakumod"
   },
   "resources": [
     "libraries/font-subset"
