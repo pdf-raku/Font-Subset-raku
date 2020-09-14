@@ -1,6 +1,7 @@
 use Font::Subset::TTF::Table;
 
-class Font::Subset::TTF::Table::CMap is Font::Subset::TTF::Table {
+class Font::Subset::TTF::Table::CMap
+    does Font::Subset::TTF::Table {
 
     use Font::Subset::TTF::Defs :types, :Sfnt-Struct;
 

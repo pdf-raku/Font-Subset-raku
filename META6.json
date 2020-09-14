@@ -8,7 +8,8 @@
   ],
     "depends": [
       "CStruct::Packing",
-      "Font::FreeType"
+      "Font::FreeType",
+      "File::Temp"
   ],
   "description": "Font subsetting utility",
   "license": "Artistic-2.0",
@@ -22,7 +23,9 @@
       "Font::Subset::TTF::Defs": "lib/Font/Subset/TTF/Defs.rakumod",
       "Font::Subset::TTF::Table": "lib/Font/Subset/TTF/Table.rakumod",
       "Font::Subset::TTF::Table::CMap": "lib/Font/Subset/TTF/Table/CMap.rakumod",
-      "Font::Subset::TTF::Table::Locations": "lib/Font/Subset/TTF/Table/Locations.rakumod"
+      "Font::Subset::TTF::Table::Header": "lib/Font/Subset/TTF/Table/Header.rakumod",
+      "Font::Subset::TTF::Table::Locations": "lib/Font/Subset/TTF/Table/Locations.rakumod",
+      "Font::Subset::TTF::Table::MaxProfile": "lib/Font/Subset/TTF/Table/MaxProfile.rakumod"
   },
   "resources": [
     "libraries/font-subset"

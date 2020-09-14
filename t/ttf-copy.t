@@ -1,15 +1,23 @@
 use Test;
-plan 41;
 use Font::Subset::TTF;
 use Font::Subset::TTF::Table::CMap;
 use Font::Subset::TTF::Table::Header;
 use Font::Subset::TTF::Table::Locations;
 use Font::Subset::TTF::Table::MaxProfile;
-use NativeCall;
+use File::Temp;
+plan 41;
 
 my $fh = "t/fonts/Vera.ttf".IO.open(:r, :bin);
 
 my Font::Subset::TTF:D $ttf .= new: :$fh;
+
+(my $filename, $fh) = tempfile;
+$fh.write: $ttf.Blob;
+$fh.close;
+
+# read-read the file
+$fh = $filename.IO.open(:r, :bin);
+$ttf .= new: :$fh;
 
 is $ttf.numTables, 17;
 

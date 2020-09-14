@@ -1,12 +1,12 @@
 unit class Font::Subset::TTF;
 
 use CStruct::Packing :Endian;
-use Font::FreeType;
-use Font::FreeType::Face;
 use Font::Subset::TTF::Defs :Sfnt-Struct;
 use Font::Subset::TTF::Table;
 use Font::Subset::TTF::Table::CMap;
+use Font::Subset::TTF::Table::Header;
 use Font::Subset::TTF::Table::Locations;
+use Font::Subset::TTF::Table::MaxProfile;
 use NativeCall;
 
 class Offsets is repr('CStruct') does Sfnt-Struct {
@@ -19,13 +19,17 @@ class Offsets is repr('CStruct') does Sfnt-Struct {
 
 class Directory is repr('CStruct') does Sfnt-Struct {
     has uint32	$.tag; 	        # 4-byte identifier
+    has uint32	$.checkSum;	# checksum for this table
+    has uint32	$.offset;	# offset from beginning of sfnt
+    has uint32	$.length;	# length of this table in byte (actual length not padded length)
+
     sub tag-decode(UInt:D $tag is copy) is export(:tag-decode) {
         my @chrs = (1..4).map: {
             my $chr = ($tag mod 256).chr;
             $tag div= 256;
             $chr;
         }
-        @chrs.reverse.join;
+        @chrs.reverse.join.trim;
     }
 
     sub tag-encode(Str:D $s --> UInt) is export {
@@ -34,45 +38,40 @@ class Directory is repr('CStruct') does Sfnt-Struct {
             $enc *= 256;
             $enc += $_;
         }
+        $enc ~= ' ' while $enc.chars < 4;
         $enc;
     }
 
+    method tag-encoded { $!tag }
     method tag {
         tag-decode($!tag);
     }
-
-    has uint32	$.checkSum;	# checksum for this table
-    has uint32	$.offset;	# offset from beginning of sfnt
-    has uint32	$.length;	# length of this table in byte (actual length not padded length)
 }
 has IO::Handle:D $.fh is required;
-has Font::FreeType::Face $.face;
 has Offsets $!offsets handles<numTables>;
-has %!position;
-has %!length;
-has Directory @!directories;
-has Buf %!bufs;
+has UInt %!tag-idx;
 has Font::Subset::TTF::Table %!tables = %(
     :cmap(Font::Subset::TTF::Table::CMap),
+    :head(Font::Subset::TTF::Table::Header),
     :loca(Font::Subset::TTF::Table::Locations),
+    :maxp(Font::Subset::TTF::Table::MaxProfile),
 );
-has Set $.copied = set <head hhea vhea maxp hmtx fpgm prep cvt>;
-##has Set $.rebuilt = set <cmap loca glyph>;
+has Directory @.directories;
+has UInt @.lengths;
+has Buf @.bufs;
+has Set $.rebuilt = set <
+    maxp hdmx htmx cmap loca glyf name kern
+>;
 
-method tables {
-    %!position.sort(*.value).map(*.key);
+method tags {
+    @!directories.grep(*.defined)>>.tag;
 }
 
 submethod TWEAK {
-    with $!fh {
-        $!face //= Font::FreeType.new.face: .slurp(:bin);
-        .seek(0, SeekFromBeginning);
-        $!offsets .= read($!fh);
-    }
-
-    for 1 .. $!offsets.numTables {
+    $!offsets .= read($!fh);
+    for 0 ..^ $!offsets.numTables {
         my Directory $dir .= read($!fh);
-        %!position{$dir.tag} = $dir.offset;
+        %!tag-idx{$dir.tag} = $_;
         @!directories.push: $dir;
     }
 
@@ -82,51 +81,109 @@ submethod TWEAK {
 
 method !setup-lengths {
     my $prev;
-    for %!position.pairs.sort(*.value) {
-        if $prev.defined {
-            %!length{$prev.key} = .value - $prev.value;
+    for @!directories.sort(*.offset) -> $dir {
+        with $prev {
+            my $offset = $dir.offset;
+            my $idx = %!tag-idx{$prev.tag};
+            @!lengths[$idx] = $offset - $prev.offset;
         }
-        $prev = $_;
+        $prev = $dir;
     }
-    %!length{.key} = .value with $prev;
 }
 
-method read($tag) {
-    without %!bufs{$tag} {
-        with %!position{$tag} -> $pos {
-            $!fh.seek($pos, SeekFromBeginning);
-            my $len = %!length{$tag};
-            $_ = $!fh.read($len);
+multi method read(UInt $pos) {
+    @!bufs[$pos] //= do {
+        my $offset = @!directories[$pos].offset;
+        $!fh.seek($offset, SeekFromBeginning);
+        with @!lengths[$pos] {
+            $!fh.read($_);
+        }
+        else {
+            $!fh.slurp-rest(:bin);
         }
     }
-    %!bufs{$tag}
+}
+multi method read(Str $tag) {
+    $.read($_) with %!tag-idx{$tag};
 }
 
 multi method load(Str $tag, :$class = %!tables{$tag}) {
     %!tables{$tag} //= do {
         with self.read($tag) -> $buf {
-            $class.new: :$buf, :$tag, :pad, :loader(self);
+            $class.new: :$buf, :$tag, :loader(self);
         }
+    };
+}
+
+constant Alignment = nativesizeof(long);
+
+multi sub byte-align(UInt $bytes is rw) {
+    if $bytes %% Alignment {
+        $bytes;
+    }
+    else {
+        my \padding = Alignment - $bytes % Alignment;
+        $bytes += padding;
     }
 }
 
-method !rebuild {
-    my $out = self.new;
-    # copy or rebuild tables. Preserve input order
-    for @!directories.sort: *.offset {
-        given .tag {
-##            when $!rebuilt{$_}:exists {
-##                ...
-##            }
-            when $!copied{$_}:exists {
-            }
+multi sub byte-align(buf8 $buf) {
+    my $bytes := $buf.bytes;
+    unless $bytes %% Alignment {
+        my \padding = Alignment - $bytes % Alignment;
+        $buf.append: 0 xx padding;
+    }
+    $buf;
+}
+
+method !rebuild returns Blob {
+    # copy or rebuild tables. Preserve input order\
+    my class ManifestItem {
+        has Directory:D $.dir-in is required;
+        has Blob:D $.buf is required;
+        has Directory $.dir-out is rw;
+    }
+    my ManifestItem @manifest;
+
+    for @!directories -> $dir-in {
+        my $tag := $dir-in.tag;
+        given self.load($tag) -> $table {
+            my $buf = $table.buf;
+            @manifest.push: ManifestItem.new: :$dir-in, :$buf;
         }
     }
+
+    my uint16 $numTables = +@manifest;
+    # todo: recalc properties. copy for now
+    my uint16  $searchRange = $!offsets.searchRange;
+    my uint16  $entrySelector = $!offsets.entrySelector;
+    my uint16  $rangeShift = $!offsets.rangeShift;
+    my uint32  $ver = $!offsets.ver;
+    my Offsets $offsets .= new: :$numTables, :$ver, :$searchRange, :$entrySelector, :$rangeShift;
+    my $buf = $offsets.pack;
+    my $offset = Offsets.packed-size + $numTables * Directory.packed-size;
+    for @manifest {
+        my $dir = .dir-in;
+        my $tag-str = $dir.tag;
+        my uint32 $tag = $dir.tag-encoded;
+        # todo: recalc properties. copy for now
+        my uint32	$checkSum = $dir.checkSum;
+        my $subbuf = $dir.pack;
+        my uint32 $length = $dir.length;
+        .dir-out = Directory.new: :$offset, :$tag, :$tag-str, :$length, :$checkSum;
+        $buf.append: .dir-out.pack;
+        $offset += $length;
+        byte-align($offset);
+    }
+    for @manifest {
+        $buf.append: .buf;
+        byte-align($buf);
+    }
+    $buf;
 }
 
 #| rebuilt the Sfnt Image
 method Blob {
-    my $out = self!rebuild;
-    $out.pack;
+    self!rebuild;
 }
 

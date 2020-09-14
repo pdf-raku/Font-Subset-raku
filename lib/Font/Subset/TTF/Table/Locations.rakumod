@@ -1,11 +1,11 @@
 use Font::Subset::TTF::Table;
 
 class Font::Subset::TTF::Table::Locations
-    is Font::Subset::TTF::Table {
+    does Font::Subset::TTF::Table {
 
     use Font::Subset::TTF::Defs :Sfnt-Struct;
-    use Font::FreeType::Face;
-    use Font::FreeType::Raw::TT_Sfnt;
+    use Font::Subset::TTF::Table::Header;
+    use Font::Subset::TTF::Table::MaxProfile;
     use CStruct::Packing;
     use NativeCall;
     
@@ -29,12 +29,10 @@ class Font::Subset::TTF::Table::Locations
 
     submethod TWEAK(:$loader!) {
         my $buf := self.buf;
-        my Font::FreeType::Face $face = $loader.face;
-        my TT_Header $head .= load: :$face;
-        my TT_MaxProfile $maxp .= load: :$face;
+        my Font::Subset::TTF::Table::Header:D $head .= load($loader);
+        my Font::Subset::TTF::Table::MaxProfile:D $maxp .= load($loader);
 
         $!num-glyphs = $maxp.numGlyphs;
-        warn $!num-glyphs;
 
         my Offset:U $class = ? $head.indexToLocFormat
             ?? OffsetLong
