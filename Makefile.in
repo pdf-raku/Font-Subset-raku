@@ -12,16 +12,16 @@ debug :
 coverage :
 	%MAKE% "DBG=-fprofile-arcs -ftest-coverage" "LD_DBG=-coverage -lgcov" all
 
-resources/libraries/%LIB-NAME% : $(SRC)/font_subset%O% $(SRC)/font_subset__truetype%O%
+resources/libraries/%LIB-NAME% : $(SRC)/font_subset%O% $(SRC)/font_subset_sfnt%O%
 	%LD% %LDSHARED% %LDFLAGS% %LDOUT%resources/libraries/%LIB-NAME% \
-	$(SRC)/font_subset%O% $(SRC)/font_subset__truetype%O% \
+	$(SRC)/font_subset%O% $(SRC)/font_subset_sfnt%O% \
 	%LIB-LDFLAGS% $(LD_DBG) 
 
-$(SRC)/font_subset%O% : $(SRC)/font_subset.c $(SRC)/font_subset.h $(SRC)/font_subset__truetype.h
+$(SRC)/font_subset%O% : $(SRC)/font_subset.c $(SRC)/font_subset.h $(SRC)/font_subset_sfnt.h
 	%CC% -I $(SRC) -c %CCSHARED% %CCFLAGS% %CCOUT%$(SRC)/font_subset%O% $(SRC)/font_subset.c %LIB-CFLAGS% $(DBG)
 
-$(SRC)/font_subset__truetype%O% : $(SRC)/font_subset__truetype.c $(SRC)/font_subset.h $(SRC)/font_subset__truetype.h
-	%CC% -I $(SRC) -c %CCSHARED% %CCFLAGS% %CCOUT%$(SRC)/font_subset__truetype%O% $(SRC)/font_subset__truetype.c %LIB-CFLAGS% $(DBG)
+$(SRC)/font_subset_sfnt%O% : $(SRC)/font_subset_sfnt.c $(SRC)/font_subset.h $(SRC)/font_subset_sfnt.h
+	%CC% -I $(SRC) -c %CCSHARED% %CCFLAGS% %CCOUT%$(SRC)/font_subset_sfnt%O% $(SRC)/font_subset_sfnt.c %LIB-CFLAGS% $(DBG)
 
 
 test : all

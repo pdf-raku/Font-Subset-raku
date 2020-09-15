@@ -7,6 +7,8 @@ perl6:
   - '2020.06'
 install:
   - rakudobrew build zef
+  - git clone https://github.com/p6-pdf/CStruct-Packing-p6.git
+  - (cd CStruct-Packing-p6/ && zef install .)
   - zef --depsonly install .
   - zef build .
 script:

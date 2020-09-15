@@ -1,5 +1,5 @@
 use Test;
-plan 41;
+plan 42;
 use Font::Subset::TTF;
 use Font::Subset::TTF::Table::CMap;
 use Font::Subset::TTF::Table::Header;
@@ -50,10 +50,11 @@ is $maxp.maxComponentDepth, 1;
 
 my Font::Subset::TTF::Table::Locations $locs .= load($ttf);
 is $locs.elems, $locs.num-glyphs+1;
-is $locs[0].byte, 0;
-is $locs[1].byte, 68;
-is $locs[5].byte, 176;
-is $locs[268].byte, 35454;
+is $locs[0], 0;
+is $locs[1], 68;
+is $locs[5], 176;
+is $locs[267], 35412;
+is $locs[268], 35454;
 
 my Font::Subset::TTF::Table::CMap $cmap .= load($ttf);
 is $cmap.elems, 2;

@@ -13,8 +13,11 @@ class fontSubset is repr('CStruct') is export {
     has CArray[FT_UInt] $.gids;
     has Pointer $.fail;
 
-    our sub create(FT_Face, CArray[FT_ULong] $codes, size_t --> fontSubset) is native($FONT-SUBSET-LIB) is symbol('font_subset_create') {*}
+    our sub create(FT_Face, CArray[FT_ULong] $codes, size_t --> fontSubset)
+        is native($FONT-SUBSET-LIB) is symbol('font_subset_create') {*}
     method new(|) {...}
+    method repack-glyphs(CArray[uint16], buf8 --> uint16)
+        is native($FONT-SUBSET-LIB) is symbol('font_subset_sfnt_repack_glyphs_16') {*}
     method done is native($FONT-SUBSET-LIB) is symbol('font_subset_done') {*}
 }
 

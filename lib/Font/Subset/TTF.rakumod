@@ -2,6 +2,8 @@ unit class Font::Subset::TTF;
 
 use CStruct::Packing :Endian;
 use Font::Subset::TTF::Defs :Sfnt-Struct;
+use Font::Subset;
+use Font::Subset::Raw;
 use Font::Subset::TTF::Table;
 use Font::Subset::TTF::Table::CMap;
 use Font::Subset::TTF::Table::Header;
@@ -91,25 +93,41 @@ method !setup-lengths {
     }
 }
 
-multi method read(UInt $pos) {
-    @!bufs[$pos] //= do {
-        my $offset = @!directories[$pos].offset;
-        $!fh.seek($offset, SeekFromBeginning);
-        with @!lengths[$pos] {
-            $!fh.read($_);
-        }
-        else {
-            $!fh.slurp-rest(:bin);
+method buf(Str $tag) {
+    my UInt:D $idx = %!tag-idx{$tag};
+    @!bufs[$idx] //= do with %!tables{$tag} {
+        .pack;
+    }
+    else {
+        with @!directories[$idx] {
+            my $offset = .offset;
+            $!fh.seek($offset, SeekFromBeginning);
+            with @!lengths[$idx] {
+                $!fh.read($_);
+            }
+            else {
+                $!fh.slurp-rest(:bin);
+            }
         }
     }
 }
-multi method read(Str $tag) {
-    $.read($_) with %!tag-idx{$tag};
+
+multi method update-buf(Blob $buf, Str:D :$tag!) {
+    %!tables{$tag}:delete; # invalidate object
+    my $idx = (%!tag-idx{$tag} //= +%!tag-idx);
+    @!bufs[$idx] = $buf;
 }
 
-multi method load(Str $tag, :$class = %!tables{$tag}) {
+multi method update-table(Font::Subset::TTF::Table $obj) {
+    my $tag = $obj.tag;
+    %!tables{$tag} = $obj;
+    my $idx = (%!tag-idx{$tag} //= +%!tag-idx);
+    @!bufs[$idx] = Nil;  # invalidate buffer
+}
+
+method load(Str $tag, :$class = %!tables{$tag}) {
     %!tables{$tag} //= do {
-        with self.read($tag) -> $buf {
+        with self.buf($tag) -> Blob $buf {
             $class.new: :$buf, :$tag, :loader(self);
         }
     };
@@ -136,6 +154,23 @@ multi sub byte-align(buf8 $buf) {
     $buf;
 }
 
+method subset(Font::Subset $subset) {
+    my Font::Subset::TTF::Table::Header:D $head .= load(self);
+    my Font::Subset::TTF::Table::MaxProfile:D $maxp .= load(self);
+    my Font::Subset::TTF::Table::Locations:D $loca .= load(self);
+    my buf8 $glyphs = self.buf('glyf');
+
+    my $num-glyphs := $subset.len;
+    $maxp.numGlyphs = $num-glyphs;
+    my $bytes = $subset.raw.repack-glyphs($loca.offsets, $glyphs);
+    $glyphs.reallocate($bytes);
+    $loca.num-glyphs = $num-glyphs;
+
+    self.update-table($maxp);
+    self.update-table($loca);
+    self.update-buf($glyphs, :tag<glyf>);
+}
+
 method !rebuild returns Blob {
     # copy or rebuild tables. Preserve input order\
     my class ManifestItem {
@@ -152,6 +187,8 @@ method !rebuild returns Blob {
             @manifest.push: ManifestItem.new: :$dir-in, :$buf;
         }
     }
+
+    @manifest .= sort(*.dir-in.tag);
 
     my uint16 $numTables = +@manifest;
     # todo: recalc properties. copy for now

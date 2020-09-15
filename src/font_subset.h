@@ -1,6 +1,7 @@
 #ifndef __FONT_SUBSET_H
 #define __FONT_SUBSET_H
 
+#include <stdint.h>
 #include <ft2build.h>
 #include FT_FREETYPE_H
 #include FT_FONT_FORMATS_H
@@ -24,7 +25,8 @@ typedef fontSubset *fontSubsetPtr;
 #define DLLEXPORT extern
 #endif
 
-DLLEXPORT fontSubsetPtr font_subset_create(FT_Face font, FT_ULong*, size_t);
+DLLEXPORT fontSubsetPtr font_subset_create(FT_Face, FT_ULong*, size_t);
+DLLEXPORT void font_subset_fail(fontSubsetPtr, const char*);
 DLLEXPORT void font_subset_done(fontSubsetPtr);
 
 #endif /* __FONT_SUBSET_H */

@@ -7,7 +7,7 @@ class Font::Subset::TTF::Table::MaxProfile
     use Font::Subset::TTF::Defs :types;
 
     HAS Fixed	$.version;	# 0x00010000 (1.0)
-    has uint16	$.numGlyphs;	# the number of glyphs in the font
+    has uint16	$.numGlyphs is rw;	# the number of glyphs in the font
     has uint16	$.maxPoints;	# points in non-compound glyph
     has uint16	$.maxContours;	# contours in non-compound glyph
     has uint16	$.maxComponentPoints;	# points in compound glyph

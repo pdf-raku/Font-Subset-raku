@@ -1,9 +1,9 @@
 #include "font_subset.h"
-#include "font_subset__truetype.h"
 #include <memory.h>
 #include <stdio.h>
 
-static void _font_subset_fail(fontSubsetPtr self, const char* msg) {
+DLLEXPORT void
+font_subset_fail(fontSubsetPtr self, const char* msg) {
     if (self->fail != NULL) {
         fprintf(stderr, "%s\n", self->fail);
         free(self->fail);
@@ -24,7 +24,7 @@ font_subset_create(FT_Face font, FT_ULong *charset, size_t len) {
         FT_ULong code = charset[i];
         FT_UInt gid;
         if (i && code <= charset[i-1]) {
-            _font_subset_fail(self, "charset is not unique and in ascending order");
+            font_subset_fail(self, "charset is not unique and in ascending order");
             break;
         }
         gid = FT_Get_Char_Index(font, code);
