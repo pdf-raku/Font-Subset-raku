@@ -5,6 +5,9 @@ use Font::FreeType::Raw::Defs;
 use Font::Subset::Raw::Defs;
 use NativeCall;
 
+sub font_subset_sfnt_checksum(Blob, size_t --> uint32)
+    is export is native($FONT-SUBSET-LIB) {*}
+
 class fontSubset is repr('CStruct') is export {
 
     has FT_Face $.face;

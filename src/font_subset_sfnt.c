@@ -2,16 +2,23 @@
 #include "font_subset_sfnt.h"
 #include <stdio.h>
 
-struct _table {
-    unsigned long tag;
-    int (*write) (fontSubsetPtr, unsigned long tag);
-    int pos; /* position in the font directory */
-};
-typedef struct _table table_t;
-
-struct _file {
-    table_t tables[10];    
-};
+DLLEXPORT uint32_t
+font_subset_sfnt_checksum(uint8_t* buf, size_t len) {
+    uint32_t checksum = 0;
+    size_t i;
+    uint8_t j;
+    for (i = 0; i < len;) {
+        uint32_t val = 0;
+        for (j = 0; j < 4; j++) {
+            val <<= 8;
+            if (i < len) {
+                val += buf[i++];
+            }
+        }
+        checksum += val;
+    }
+    return checksum;
+}
 
 // in-place repacking of both an 16-bit location index and corresponding glyph buffer
 DLLEXPORT uint16_t

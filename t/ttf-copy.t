@@ -5,11 +5,12 @@ use Font::Subset::TTF::Table::Header;
 use Font::Subset::TTF::Table::Locations;
 use Font::Subset::TTF::Table::MaxProfile;
 use File::Temp;
-plan 42;
+plan 43;
 
 my $fh = "t/fonts/Vera.ttf".IO.open(:r, :bin);
 
 my Font::Subset::TTF:D $ttf .= new: :$fh;
+my $head-checksum-in = $ttf.directories.first(*.tag eq 'maxp').checkSum;
 
 (my $filename, $fh) = tempfile;
 $fh.write: $ttf.Blob;
@@ -20,6 +21,9 @@ $fh = $filename.IO.open(:r, :bin);
 $ttf .= new: :$fh;
 
 is $ttf.numTables, 17;
+my $head-checksum-out = $ttf.directories.first(*.tag eq 'maxp').checkSum;
+
+is $head-checksum-out, $head-checksum-in;
 
 my Font::Subset::TTF::Table::Header $head .= load($ttf);
 

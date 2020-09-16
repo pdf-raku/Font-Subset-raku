@@ -203,8 +203,7 @@ method !rebuild returns Blob {
         my $dir = .dir-in;
         my $tag-str = $dir.tag;
         my uint32 $tag = $dir.tag-encoded;
-        # todo: recalc properties. copy for now
-        my uint32	$checkSum = $dir.checkSum;
+        my uint32 $checkSum = font_subset_sfnt_checksum(.buf, .buf.bytes);
         my $subbuf = $dir.pack;
         my uint32 $length = $dir.length;
         .dir-out = Directory.new: :$offset, :$tag, :$tag-str, :$length, :$checkSum;
