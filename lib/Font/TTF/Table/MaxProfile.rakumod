@@ -1,10 +1,10 @@
-use Font::Subset::TTF::Table;
+use Font::TTF::Table;
 
-class Font::Subset::TTF::Table::MaxProfile
+class Font::TTF::Table::MaxProfile
     is repr('CStruct')
-    does Font::Subset::TTF::Table['maxp'] {
+    does Font::TTF::Table['maxp'] {
 
-    use Font::Subset::TTF::Defs :types;
+    use Font::TTF::Defs :types;
 
     HAS Fixed	$.version;	# 0x00010000 (1.0)
     has uint16	$.numGlyphs is rw;	# the number of glyphs in the font

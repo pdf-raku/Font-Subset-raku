@@ -1,8 +1,8 @@
-unit module Font::Subset::Raw;
+unit module Font::TTF::Subset::Raw;
 
 use Font::FreeType::Raw;
 use Font::FreeType::Raw::Defs;
-use Font::Subset::Raw::Defs;
+use Font::TTF::Subset::Raw::Defs;
 use NativeCall;
 
 sub font_subset_sfnt_checksum(Blob, size_t --> uint32)

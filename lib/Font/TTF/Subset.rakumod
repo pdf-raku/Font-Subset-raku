@@ -1,6 +1,6 @@
-unit class Font::Subset:ver<0.0.1>;
+unit class Font::TTF::Subset:ver<0.0.1>;
 
-use Font::Subset::Raw;
+use Font::TTF::Subset::Raw;
 use Font::FreeType::Face;
 use Font::FreeType::Raw::Defs;
 use NativeCall;

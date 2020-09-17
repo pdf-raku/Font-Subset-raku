@@ -1,11 +1,10 @@
-use Font::Subset::TTF::Table;
+use Font::TTF::Table::Generic;
 
-class Font::Subset::TTF::Table::Locations
-    does Font::Subset::TTF::Table {
+class Font::TTF::Table::HoriMetrics
+    is Font::TTF::Table::Generic {
 
-    use Font::Subset::TTF::Defs :Sfnt-Struct;
-    use Font::Subset::TTF::Table::Header;
-    use Font::Subset::TTF::Table::MaxProfile;
+    use Font::TTF::Defs :Sfnt-Struct;
+    use Font::TTF::Table::HoriHeader;
     use CStruct::Packing :&mem-unpack, :&mem-pack;
     use NativeCall;
     
@@ -21,13 +20,11 @@ class Font::Subset::TTF::Table::Locations
         $!offsets[$idx] * $!scale;
     }
 
-    constant Header = Font::Subset::TTF::Table::Header;
-    constant MaxProfile = Font::Subset::TTF::Table::MaxProfile;
+    constant HoriHeader = Font::TTF::Table::HoriHeader;
 
     submethod TWEAK(
         :$loader,
-        Header:D :$head     = Header.load($loader),
-        MaxProfile:D :$maxp = MaxProfile.load($loader),
+        HoriHeader:D :$hhea     = HoriHeader.load($loader),
         Buf :$buf           = $loader.buf(self.tag),
     ) {
 

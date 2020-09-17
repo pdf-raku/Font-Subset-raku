@@ -1,10 +1,10 @@
-use Font::Subset::TTF::Table;
+use Font::TTF::Table;
 
-class Font::Subset::TTF::Table::Header
+class Font::TTF::Table::Header
     is repr('CStruct')
-    does Font::Subset::TTF::Table['head'] {
+    does Font::TTF::Table['head'] {
 
-    use Font::Subset::TTF::Defs :types;
+    use Font::TTF::Defs :types;
 
     HAS Fixed  $.version;
     HAS Fixed  $.fontRevision;

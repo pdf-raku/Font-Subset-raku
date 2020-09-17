@@ -1,16 +1,19 @@
 use Test;
-use Font::Subset::TTF;
-use Font::Subset::TTF::Table::CMap;
-use Font::Subset::TTF::Table::Header;
-use Font::Subset::TTF::Table::Locations;
-use Font::Subset::TTF::Table::MaxProfile;
+use Font::TTF;
+use Font::TTF::Table::CMap;
+use Font::TTF::Table::Header;
+use Font::TTF::Table::Locations;
+use Font::TTF::Table::MaxProfile;
+use Font::TTF::Subset::Raw;
 use File::Temp;
-plan 43;
+plan 44;
 
 my $fh = "t/fonts/Vera.ttf".IO.open(:r, :bin);
 
-my Font::Subset::TTF:D $ttf .= new: :$fh;
-my $head-checksum-in = $ttf.directories.first(*.tag eq 'maxp').checkSum;
+my Font::TTF:D $ttf .= new: :$fh;
+my $maxp-checksum-in = $ttf.directories.first(*.tag eq 'maxp').checkSum;
+my $maxp-buf = $ttf.buf('maxp');
+is font_subset_sfnt_checksum($maxp-buf, $maxp-buf.bytes), $maxp-checksum-in;
 
 (my $filename, $fh) = tempfile;
 $fh.write: $ttf.Blob;
@@ -21,11 +24,11 @@ $fh = $filename.IO.open(:r, :bin);
 $ttf .= new: :$fh;
 
 is $ttf.numTables, 17;
-my $head-checksum-out = $ttf.directories.first(*.tag eq 'maxp').checkSum;
+my $maxp-checksum-out = $ttf.directories.first(*.tag eq 'maxp').checkSum;
 
-is $head-checksum-out, $head-checksum-in;
+is $maxp-checksum-out, $maxp-checksum-in;
 
-my Font::Subset::TTF::Table::Header $head .= load($ttf);
+my Font::TTF::Table::Header $head .= load($ttf);
 
 is $head.version, 1;
 is $head.fontRevision, 2;
@@ -43,7 +46,7 @@ is $head.xMin, -375;
 is $head.yMax, 1901;
 is $head.yMin, -483;
 
-my Font::Subset::TTF::Table::MaxProfile $maxp .= load($ttf);
+my Font::TTF::Table::MaxProfile $maxp .= load($ttf);
 is $maxp.version, 1;
 is $maxp.numGlyphs, 268;
 is $maxp.maxPoints, 77;
@@ -60,7 +63,7 @@ is $maxp.maxSizeOfInstructions, 1384;
 is $maxp.maxComponentElements, 3;
 is $maxp.maxComponentDepth, 1;
 
-my Font::Subset::TTF::Table::Locations $locs .= load($ttf);
+my Font::TTF::Table::Locations $locs .= load($ttf);
 is $locs.elems, $locs.num-glyphs+1;
 is $locs[0], 0;
 is $locs[1], 68;
@@ -68,7 +71,7 @@ is $locs[5], 176;
 is $locs[267], 35412;
 is $locs[268], 35454;
 
-my Font::Subset::TTF::Table::CMap $cmap .= load($ttf);
+my Font::TTF::Table::CMap $cmap .= load($ttf);
 is $cmap.elems, 2;
 
 is $cmap[0].platformID, 1;

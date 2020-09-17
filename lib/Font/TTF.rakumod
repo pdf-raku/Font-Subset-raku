@@ -1,14 +1,19 @@
-unit class Font::Subset::TTF;
+unit class Font::TTF;
 
 use CStruct::Packing :Endian;
-use Font::Subset::TTF::Defs :Sfnt-Struct;
-use Font::Subset;
-use Font::Subset::Raw;
-use Font::Subset::TTF::Table;
-use Font::Subset::TTF::Table::CMap;
-use Font::Subset::TTF::Table::Header;
-use Font::Subset::TTF::Table::Locations;
-use Font::Subset::TTF::Table::MaxProfile;
+use Font::TTF::Defs :Sfnt-Struct;
+use Font::TTF::Subset;
+use Font::TTF::Subset::Raw;
+use Font::TTF::Table;
+use Font::TTF::Table::CMap;
+use Font::TTF::Table::Header;
+use Font::TTF::Table::HoriHeader;
+use Font::TTF::Table::VertHeader;
+use Font::TTF::Table::Locations;
+use Font::TTF::Table::OS2;
+use Font::TTF::Table::PCLT;
+use Font::TTF::Table::MaxProfile;
+use Font::TTF::Table::Generic;
 use NativeCall;
 
 class Offsets is repr('CStruct') does Sfnt-Struct {
@@ -52,11 +57,15 @@ class Directory is repr('CStruct') does Sfnt-Struct {
 has IO::Handle:D $.fh is required;
 has Offsets $!offsets handles<numTables>;
 has UInt %!tag-idx;
-has Font::Subset::TTF::Table %!tables = %(
-    :cmap(Font::Subset::TTF::Table::CMap),
-    :head(Font::Subset::TTF::Table::Header),
-    :loca(Font::Subset::TTF::Table::Locations),
-    :maxp(Font::Subset::TTF::Table::MaxProfile),
+has Font::TTF::Table %!tables = %(
+    :cmap(Font::TTF::Table::CMap),
+    :head(Font::TTF::Table::Header),
+    :hhea(Font::TTF::Table::HoriHeader),
+    :loca(Font::TTF::Table::Locations),
+    :maxp(Font::TTF::Table::MaxProfile),
+    :vhea(Font::TTF::Table::VertHeader),
+    :PCLT(Font::TTF::Table::PCLT),
+    'OS/2' => Font::TTF::Table::OS2,
 );
 has Directory @.directories;
 has UInt @.lengths;
@@ -94,7 +103,8 @@ method !setup-lengths {
 }
 
 method buf(Str $tag) {
-    my UInt:D $idx = %!tag-idx{$tag};
+    my UInt:D $idx = (%!tag-idx{$tag} //= +%!tag-idx);
+
     @!bufs[$idx] //= do with %!tables{$tag} {
         .pack;
     }
@@ -109,6 +119,9 @@ method buf(Str $tag) {
                 $!fh.slurp-rest(:bin);
             }
         }
+        else {
+            buf8;
+        }
     }
 }
 
@@ -118,18 +131,25 @@ multi method update-buf(Blob $buf, Str:D :$tag!) {
     @!bufs[$idx] = $buf;
 }
 
-multi method update-table(Font::Subset::TTF::Table $obj) {
+multi method update-table(Font::TTF::Table $obj) {
     my $tag = $obj.tag;
     %!tables{$tag} = $obj;
     my $idx = (%!tag-idx{$tag} //= +%!tag-idx);
     @!bufs[$idx] = Nil;  # invalidate buffer
 }
 
-method load(Str $tag, :$class = %!tables{$tag}) {
-    %!tables{$tag} //= do {
+method load(Str $tag) {
+    %!tables{$tag} = Font::TTF::Table::Generic
+        unless %!tables{$tag}:exists;
+
+    with %!tables{$tag} {
+        $_
+    }
+    else {
         with self.buf($tag) -> Blob $buf {
-            $class.new: :$buf, :$tag, :loader(self);
+            $_ .= new: :$buf, :$tag, :loader(self);
         }
+        $_;
     };
 }
 
@@ -154,21 +174,21 @@ multi sub byte-align(buf8 $buf) {
     $buf;
 }
 
-method subset(Font::Subset $subset) {
-    my Font::Subset::TTF::Table::Header:D $head .= load(self);
-    my Font::Subset::TTF::Table::MaxProfile:D $maxp .= load(self);
-    my Font::Subset::TTF::Table::Locations:D $loca .= load(self);
-    my buf8 $glyphs = self.buf('glyf');
+method subset(Font::TTF::Subset $subset) {
+    my Font::TTF::Table::Header:D $head .= load(self);
+    my Font::TTF::Table::MaxProfile:D $maxp .= load(self);
+    my Font::TTF::Table::Locations:D $loca .= load(self);
+    my buf8 $glyphs-buf = self.buf('glyf');
 
     my $num-glyphs := $subset.len;
     $maxp.numGlyphs = $num-glyphs;
-    my $bytes = $subset.raw.repack-glyphs($loca.offsets, $glyphs);
-    $glyphs.reallocate($bytes);
+    my $bytes = $subset.raw.repack-glyphs($loca.offsets, $glyphs-buf);
+    $glyphs-buf.reallocate($bytes);
     $loca.num-glyphs = $num-glyphs;
 
     self.update-table($maxp);
     self.update-table($loca);
-    self.update-buf($glyphs, :tag<glyf>);
+    self.update-buf($glyphs-buf, :tag<glyf>);
 }
 
 method !rebuild returns Blob {
@@ -182,8 +202,7 @@ method !rebuild returns Blob {
 
     for @!directories -> $dir-in {
         my $tag := $dir-in.tag;
-        given self.load($tag) -> $table {
-            my $buf = $table.buf;
+        given self.buf($tag) -> $buf {
             @manifest.push: ManifestItem.new: :$dir-in, :$buf;
         }
     }

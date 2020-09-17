@@ -1,6 +1,6 @@
-use Font::Subset::TTF::Defs :types,  :Sfnt-Struct, :Sfnt-Table;
+use Font::TTF::Defs :types,  :Sfnt-Struct, :Sfnt-Table;
 
-class Font::Subset::TTF::MaxProfile is repr('CStruct') does Sfnt-Struct does Sfnt-Table['maxp'] {
+class Font::TTF::MaxProfile is repr('CStruct') does Sfnt-Struct does Sfnt-Table['maxp'] {
     HAS Fixed	$.version;	# 0x00010000 (1.0)
     has uint16	$.numGlyphs;	# the number of glyphs in the font
     has uint16	$.maxPoints;	# points in non-compound glyph

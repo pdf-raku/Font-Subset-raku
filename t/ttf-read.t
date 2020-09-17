@@ -1,19 +1,21 @@
 use Test;
-plan 42;
-use Font::Subset::TTF;
-use Font::Subset::TTF::Table::CMap;
-use Font::Subset::TTF::Table::Header;
-use Font::Subset::TTF::Table::Locations;
-use Font::Subset::TTF::Table::MaxProfile;
+plan 53;
+use Font::TTF;
+use Font::TTF::Table::CMap;
+use Font::TTF::Table::Header;
+use Font::TTF::Table::HoriHeader;
+use Font::TTF::Table::Locations;
+use Font::TTF::Table::MaxProfile;
+use Font::TTF::Table::VertHeader;
 use NativeCall;
 
 my $fh = "t/fonts/Vera.ttf".IO.open(:r, :bin);
 
-my Font::Subset::TTF:D $ttf .= new: :$fh;
+my Font::TTF:D $ttf .= new: :$fh;
 
 is $ttf.numTables, 17;
 
-my Font::Subset::TTF::Table::Header $head .= load($ttf);
+my Font::TTF::Table::Header $head .= load($ttf);
 
 is $head.version, 1;
 is $head.fontRevision, 2;
@@ -31,7 +33,7 @@ is $head.xMin, -375;
 is $head.yMax, 1901;
 is $head.yMin, -483;
 
-my Font::Subset::TTF::Table::MaxProfile $maxp .= load($ttf);
+my Font::TTF::Table::MaxProfile $maxp .= load($ttf);
 is $maxp.version, 1;
 is $maxp.numGlyphs, 268;
 is $maxp.maxPoints, 77;
@@ -48,7 +50,22 @@ is $maxp.maxSizeOfInstructions, 1384;
 is $maxp.maxComponentElements, 3;
 is $maxp.maxComponentDepth, 1;
 
-my Font::Subset::TTF::Table::Locations $locs .= load($ttf);
+my Font::TTF::Table::HoriHeader $hhea .= load($ttf);
+is $hhea.version, 1;
+is $hhea.ascent, 1901;
+is $hhea.descent, -483;
+is $hhea.lineGap, 0;
+is $hhea.advanceWidthMax, 2748;
+is $hhea.minLeftSideBearing, -375;
+is $hhea.minRightSideBearing, -375;
+is $hhea.xMaxExtent, 2636;
+is $hhea.caretSlopeRise, 1;
+is $hhea.numOfLongHorMetrics, 268;
+
+my Font::TTF::Table::VertHeader $vhea .= load($ttf);
+is-deeply $vhea, Font::TTF::Table::VertHeader;
+
+my Font::TTF::Table::Locations $locs .= load($ttf);
 is $locs.elems, $locs.num-glyphs+1;
 is $locs[0], 0;
 is $locs[1], 68;
@@ -56,7 +73,7 @@ is $locs[5], 176;
 is $locs[267], 35412;
 is $locs[268], 35454;
 
-my Font::Subset::TTF::Table::CMap $cmap .= load($ttf);
+my Font::TTF::Table::CMap $cmap .= load($ttf);
 is $cmap.elems, 2;
 
 is $cmap[0].platformID, 1;

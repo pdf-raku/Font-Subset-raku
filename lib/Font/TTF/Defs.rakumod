@@ -1,4 +1,4 @@
-unit module Font::Subset::TTF::Defs;
+unit module Font::TTF::Defs;
 
 use CStruct::Packing :Endian;
 

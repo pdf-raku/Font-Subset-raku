@@ -1,9 +1,9 @@
-use Font::Subset::TTF::Table;
+use Font::TTF::Table::Generic;
 
-class Font::Subset::TTF::Table::CMap
-    does Font::Subset::TTF::Table {
+class Font::TTF::Table::CMap
+    is Font::TTF::Table::Generic {
 
-    use Font::Subset::TTF::Defs :types, :Sfnt-Struct;
+    use Font::TTF::Defs :types, :Sfnt-Struct;
 
     method tag {'cmap'}
 
