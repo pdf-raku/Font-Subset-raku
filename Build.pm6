@@ -23,7 +23,7 @@ class Build {
     method build($workdir) {
         my $destdir = 'resources/libraries';
         mkdir $destdir;
-        make($workdir, "$destdir", :libname<font-subset>);
+        make($workdir, "$destdir", :libname<sfnt-subset>);
         True;
     }
 }

@@ -1,5 +1,5 @@
 SRC=src
-TRAVIS=https://travis-ci.org/p6-xml/LibXML-raku
+TRAVIS=https://travis-ci.org/pdf-raku/Font-TTF-Subset-raku
 
 all : lib
 
@@ -12,16 +12,13 @@ debug :
 coverage :
 	%MAKE% "DBG=-fprofile-arcs -ftest-coverage" "LD_DBG=-coverage -lgcov" all
 
-resources/libraries/%LIB-NAME% : $(SRC)/font_subset%O% $(SRC)/font_subset_sfnt%O%
+resources/libraries/%LIB-NAME% : $(SRC)/sfnt_subset%O%
 	%LD% %LDSHARED% %LDFLAGS% %LDOUT%resources/libraries/%LIB-NAME% \
-	$(SRC)/font_subset%O% $(SRC)/font_subset_sfnt%O% \
+	$(SRC)/sfnt_subset%O% \
 	%LIB-LDFLAGS% $(LD_DBG) 
 
-$(SRC)/font_subset%O% : $(SRC)/font_subset.c $(SRC)/font_subset.h $(SRC)/font_subset_sfnt.h
-	%CC% -I $(SRC) -c %CCSHARED% %CCFLAGS% %CCOUT%$(SRC)/font_subset%O% $(SRC)/font_subset.c %LIB-CFLAGS% $(DBG)
-
-$(SRC)/font_subset_sfnt%O% : $(SRC)/font_subset_sfnt.c $(SRC)/font_subset.h $(SRC)/font_subset_sfnt.h
-	%CC% -I $(SRC) -c %CCSHARED% %CCFLAGS% %CCOUT%$(SRC)/font_subset_sfnt%O% $(SRC)/font_subset_sfnt.c %LIB-CFLAGS% $(DBG)
+$(SRC)/sfnt_subset%O% : $(SRC)/sfnt_subset.c $(SRC)/sfnt_subset.h
+	%CC% -I $(SRC) -c %CCSHARED% %CCFLAGS% %CCOUT%$(SRC)/sfnt_subset%O% $(SRC)/sfnt_subset.c %LIB-CFLAGS% $(DBG)
 
 
 test : all
@@ -34,7 +31,7 @@ xtest : all
 	@prove -e"raku -I ." -r t xt
 
 clean :
-	@rm -f $(SRC)/font_subset*%O% resources/libraries/*%LIB-NAME%
+	@rm -f $(SRC)/sfnt*%O% resources/libraries/*%LIB-NAME%
 
 realclean : clean
 	@rm -f Makefile docs/*.md docs/*/*.md

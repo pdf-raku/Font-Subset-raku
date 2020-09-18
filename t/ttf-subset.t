@@ -1,35 +1,49 @@
 use Test;
-plan 10;
+plan 19;
 use Font::TTF::Subset;
 use Font::TTF;
-use Font::FreeType;
-use Font::FreeType::Face;
 use NativeCall;
 
-my @charset = "Hello, World!".ords.unique.sort;
-
-my Font::FreeType $freetype .= new;
-my Font::FreeType::Face $face = $freetype.face('t/fonts/DejaVuSans.ttf');
+constant @charset = "Hello, world".ords.unique.sort;
+enum SubsetGids <notdef space comma H d e l o r w>;
 
 my $fh = "t/fonts/Vera.ttf".IO.open(:r, :bin);
 
-my Font::TTF:D $ttf .= new: :$fh;
-my Font::TTF::Subset $subset .= new: :$face, :@charset;
+my Font::TTF::Subset $subset .= new: :$fh, :@charset;
+my Font::TTF:D $ttf = $subset.apply;
 
-$ttf.subset($subset);
-
-my $maxp = $ttf.load('maxp');
+my $maxp = $ttf.maxp;
 is $maxp.numGlyphs, 10;
 
-my $loca = $ttf.load('loca');
+my $loca = $ttf.loca;
 is $loca.elems, 11;
-is $loca[10], 1394;
+is $loca[10], 1482;
 
-todo "rebuild other tables", 5
+my $hhea = $ttf.hhea;
+is $hhea.numOfLongHorMetrics, 10;
 
-flunk('head');
-flunk('hhea');
-flunk('htmx');
+my $hmtx = $ttf.hmtx;
+is $hmtx.elems, 11;
+is $hmtx.num-long-metrics, 10;
+
+is $hmtx[notdef].advanceWidth, 1229;
+is $hmtx[notdef].leftSideBearing, 102;
+
+is $hmtx[space].advanceWidth, 651;
+is $hmtx[space].leftSideBearing, 0;
+
+is $hmtx[comma].advanceWidth, 651;
+is $hmtx[comma].leftSideBearing, 158;
+
+is $hmtx[H].advanceWidth, 1540;
+is $hmtx[H].leftSideBearing, 201;
+
+is $hmtx[w].advanceWidth, 1675;
+is $hmtx[w].leftSideBearing, 86;
+
+
+todo "rebuild other tables", 5;
+
 flunk('cmap');
 flunk('name');
 flunk('kern');
