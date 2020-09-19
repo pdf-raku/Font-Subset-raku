@@ -76,7 +76,7 @@ sfnt_subset_repack_glyphs_16(sfntSubsetPtr self, uint16_t* loc_idx, uint8_t* gly
     }
     loc_idx[gid_new] = glyph_new;
 
-    return gid_new;
+    return glyph_new;
 }
 
 static void _done(void** p) {

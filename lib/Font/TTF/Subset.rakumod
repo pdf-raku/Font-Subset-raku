@@ -34,9 +34,9 @@ method !subset-glyph-tables(Font::TTF $ttf) {
     my Font::TTF::Table::GlyphIndex:D $index = $ttf.loca;
     my buf8 $glyphs-buf = $ttf.buf('glyf');
 
-    my $bytes = $!raw.subset-glyphs($index.offsets, $glyphs-buf);
+    my $glyph-bytes := $!raw.subset-glyphs($index.offsets, $glyphs-buf);
 
-    $glyphs-buf.reallocate($bytes);
+    $glyphs-buf.reallocate($glyph-bytes);
     $index.num-glyphs = self.len;
 
     $ttf.upd($index);
