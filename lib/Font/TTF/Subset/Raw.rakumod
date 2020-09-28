@@ -9,6 +9,7 @@ class fontSubset is repr('CStruct') is export {
 
     has FT_Face $.face;
     has size_t $.len;
+    has size_t $.segments;
     has CArray[FT_ULong] $.charset;
     has CArray[FT_UInt] $.gids;
     has Pointer $.fail;

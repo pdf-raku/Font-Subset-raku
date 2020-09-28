@@ -17,6 +17,7 @@ sfnt_subset_create(FT_Face font, FT_ULong *charset, size_t len) {
     sfntSubsetPtr self = (sfntSubsetPtr)malloc(sizeof(struct _sfntSubset));
     self->font = font;
     self->len = 0;
+    self->segments = 0;
     self->charset = calloc(len + 2, sizeof(FT_ULong));
     self->gids = calloc(len + 2, sizeof(FT_UInt));
     self->fail = NULL;
@@ -25,6 +26,7 @@ sfnt_subset_create(FT_Face font, FT_ULong *charset, size_t len) {
     self->gids[0] = 0;
     self->charset[0] = 0;
     self->len++;
+    self->segments++;
 
     for (i = charset[0] ? 0: 1; i <= len; i++) {
         FT_ULong code = charset[i];
@@ -35,6 +37,10 @@ sfnt_subset_create(FT_Face font, FT_ULong *charset, size_t len) {
         }
         gid = FT_Get_Char_Index(font, code);
         if (gid != 0) {
+            if (self->gids[self->len-1]+1 != gid
+                || self->charset[self->len-1]+1 != code) {
+                self->segments++;
+            }
             self->gids[self->len] = gid;
             self->charset[self->len] = code;
             self->len++;

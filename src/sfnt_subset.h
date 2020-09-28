@@ -9,6 +9,7 @@
 struct _sfntSubset {
     FT_Face font;
     size_t len;
+    size_t segments;
     FT_ULong *charset;
     FT_UInt *gids;
     char *fail;

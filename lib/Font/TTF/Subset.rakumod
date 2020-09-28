@@ -1,6 +1,8 @@
 unit class Font::TTF::Subset:ver<0.0.1>;
 
 use Font::TTF;
+use Font::TTF::Table::CMap;
+use Font::TTF::Table::CMap::Format12 :GroupIndex;
 use Font::TTF::Table::HoriHeader;
 use Font::TTF::Table::HoriMetrics;
 use Font::TTF::Subset::Raw;
@@ -17,7 +19,7 @@ has Font::FreeType::Face $.face = do {
     $freetype.face($!fh);
 }
 
-has fontSubset $.raw handles<len charset gids>;
+has fontSubset $.raw handles<len charset gids segments>;
 
 submethod TWEAK(List:D :$charset!) {
     my CArray[FT_ULong] $codes .= new: $charset.list;
@@ -29,18 +31,18 @@ submethod DESTROY {
 }
 
 # rebuild the glyphs index ('loca') and the glyphs buffer ('glyf')
-method !subset-glyph-tables(Font::TTF $ttf) {
+method !subset-glyph-tables {
 
-    my Font::TTF::Table::GlyphIndex:D $index = $ttf.loca;
-    my buf8 $glyphs-buf = $ttf.buf('glyf');
+    my Font::TTF::Table::GlyphIndex:D $index = $!ttf.loca;
+    my buf8 $glyphs-buf = $!ttf.buf('glyf');
 
     my $glyph-bytes := $!raw.subset-glyphs($index.offsets, $glyphs-buf);
 
     $glyphs-buf.reallocate($glyph-bytes);
     $index.num-glyphs = self.len;
 
-    $ttf.upd($index);
-    $ttf.upd($glyphs-buf, :tag<glyf>)
+    $!ttf.upd($index);
+    $!ttf.upd($glyphs-buf, :tag<glyf>)
 }
 
 method !subset-hmtx(
@@ -76,22 +78,45 @@ method !subset-hmtx(
 }
 
 # rebuild horizontal metrics
-method !subset-hori-tables(Font::TTF:D $ttf) {
-    with $ttf.hhea -> Font::TTF::Table::HoriHeader $hhea {
-        with $ttf.buf('hmtx') -> buf8 $htmx-buf {
+method !subset-hori-tables {
+    with $!ttf.hhea -> Font::TTF::Table::HoriHeader $hhea {
+        with $!ttf.buf('hmtx') -> buf8 $htmx-buf {
             $hhea.numOfLongHorMetrics  = self!subset-hmtx($htmx-buf, :$hhea);
-            $ttf.upd($htmx-buf, :tag<hmtx>);
-            $ttf.upd($hhea);
+            $!ttf.upd($htmx-buf, :tag<hmtx>);
+            $!ttf.upd($hhea);
         }
     }
+}
+
+method !subset-cmap {
+    my uint32 @groups[$.segments;3];
+    my Int:D $last-ord := -2;
+    my Int:D $seg = -1;
+
+    for 0 ..^ $.len {
+        my $ord := $.charset[$_];
+        my $gid := $.gids[$_];
+        if $ord != $last-ord + 1 {
+            $seg++;
+            @groups[$seg;startCharCode] = $ord;
+            @groups[$seg;startGlyphCode] = $_;
+        }
+        @groups[$seg;endCharCode] = $ord;
+        $last-ord := $ord;
+    }
+
+    my Font::TTF::Table::CMap::Format12 $format .= new: :@groups;
+    my Font::TTF::Table::CMap $cmap .= new: :$format;
+    $!ttf.upd($cmap);
 }
 
 method apply(Font::TTF::Subset:D:) {
     my Font::TTF::Table::Header:D $head = $!ttf.head;
     my Font::TTF::Table::MaxProfile:D $maxp = $!ttf.maxp;
 
-    self!subset-glyph-tables($!ttf);
-    self!subset-hori-tables($!ttf);
+    self!subset-glyph-tables();
+    self!subset-hori-tables();
+    self!subset-cmap();
 
     my $num-glyphs := self.len;
     $!ttf.upd($maxp).numGlyphs = $num-glyphs;
