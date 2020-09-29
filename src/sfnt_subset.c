@@ -37,8 +37,7 @@ sfnt_subset_create(FT_Face font, FT_ULong *charset, size_t len) {
         }
         gid = FT_Get_Char_Index(font, code);
         if (gid != 0) {
-            if (self->gids[self->len-1]+1 != gid
-                || self->charset[self->len-1]+1 != code) {
+            if (self->charset[self->len-1]+1 != code) {
                 self->segments++;
             }
             self->gids[self->len] = gid;
