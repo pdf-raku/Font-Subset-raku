@@ -5,6 +5,8 @@ use Font::TTF::Table::CMap;
 use Font::TTF::Table::CMap::Format12 :GroupIndex;
 use Font::TTF::Table::HoriHeader;
 use Font::TTF::Table::HoriMetrics;
+use Font::TTF::Table::VertHeader;
+use Font::TTF::Table::VertMetrics;
 use Font::TTF::Subset::Raw;
 use Font::FreeType;
 use Font::FreeType::Face;
@@ -45,12 +47,10 @@ method !subset-glyph-tables {
     $!ttf.upd($glyphs-buf, :tag<glyf>)
 }
 
-method !subset-hmtx(
-    buf8 $hmtx-buf,
-    Font::TTF::Table::HoriHeader:D :$hhea!,
+method !subset-mtx(
+    buf8 $mtx-buf, $num-long-metrics
 ) {
     # todo: rewrite in C
-    my $num-long-metrics = $hhea.numOfLongHorMetrics;
     my $ss-num-long-metrics = 0;
     my $ss-num-glyphs = $.len;
     my $gid-map := $.gids;
@@ -61,7 +61,7 @@ method !subset-hmtx(
             # repack short metric
             my $from-offset := 2 * $num-long-metrics + 2 * $gid;
             my $to-offset := 2 * $ss-num-long-metrics + 2 * $ss-gid;
-            $hmtx-buf.subbuf-rw($to-offset, 2) = $hmtx-buf.subbuf($from-offset, 2)
+            $mtx-buf.subbuf-rw($to-offset, 2) = $mtx-buf.subbuf($from-offset, 2)
             unless $from-offset == $to-offset;
         }
         else {
@@ -69,11 +69,11 @@ method !subset-hmtx(
             my $from-offset := 4 * $gid;
             my $to-offset := 4 * $ss-gid;
             $ss-num-long-metrics++;
-            $hmtx-buf.subbuf-rw($to-offset, 4) = $hmtx-buf.subbuf($from-offset, 4)
+            $mtx-buf.subbuf-rw($to-offset, 4) = $mtx-buf.subbuf($from-offset, 4)
             unless $from-offset == $to-offset;
         }
     }
-    $hmtx-buf.reallocate($ss-num-glyphs * 2  +  $ss-num-long-metrics * 2);
+    $mtx-buf.reallocate($ss-num-glyphs * 2  +  $ss-num-long-metrics * 2);
     $ss-num-long-metrics;
 }
 
@@ -81,9 +81,20 @@ method !subset-hmtx(
 method !subset-hori-tables {
     with $!ttf.hhea -> Font::TTF::Table::HoriHeader $hhea {
         with $!ttf.buf('hmtx') -> buf8 $htmx-buf {
-            $hhea.numOfLongHorMetrics  = self!subset-hmtx($htmx-buf, :$hhea);
+            $hhea.numOfLongHorMetrics = self!subset-mtx($htmx-buf, $hhea.numOfLongHorMetrics);
             $!ttf.upd($htmx-buf, :tag<hmtx>);
             $!ttf.upd($hhea);
+        }
+    }
+}
+
+# rebuild vertzontal metrics
+method !subset-vert-tables {
+    with $!ttf.vhea -> Font::TTF::Table::VertHeader $vhea {
+        with $!ttf.buf('vmtx') -> buf8 $vmtx-buf {
+            $vhea.numOfLongVerMetrics = self!subset-mtx($vmtx-buf, $vhea.numOfLongVerMetrics);
+            $!ttf.upd($vmtx-buf, :tag<vmtx>);
+            $!ttf.upd($vhea);
         }
     }
 }
@@ -116,6 +127,7 @@ method apply(Font::TTF::Subset:D:) {
 
     self!subset-glyph-tables();
     self!subset-hori-tables();
+    self!subset-vert-tables();
     self!subset-cmap();
 
     my $num-glyphs := self.len;
