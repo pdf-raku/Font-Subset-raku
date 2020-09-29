@@ -20,6 +20,7 @@ my Font::TTF:D $ttf = $subset.apply;
 
 do-subset-tests($ttf, $orig-ttf);
 
+mkdir("tmp");
 "tmp/subset.ttf".IO.spurt: $ttf.buf;
 $fh = "tmp/subset.ttf".IO.open(:r, :bin);
 $ttf .= new: :$fh;
