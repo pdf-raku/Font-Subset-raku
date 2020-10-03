@@ -1,5 +1,5 @@
 use Test;
-plan 82;
+plan 48;
 use Font::TTF::Subset;
 use Font::TTF;
 use Font::TTF::Table::CMap::Format12 :GroupIndex;
@@ -45,7 +45,7 @@ sub do-subset-tests($ttf, $orig-ttf) {
     is $hmtx.elems, 11;
     is $hmtx.num-long-metrics, 10;
 
-    # compare hmtx against originals
+    # compare Horizontal Metrics against originals
     given $orig-ttf.hmtx {
         is $hmtx[notdef].advanceWidth, .[o_notdef].advanceWidth;
         is $hmtx[notdef].leftSideBearing, .[o_notdef].leftSideBearing;
@@ -72,34 +72,33 @@ sub do-subset-tests($ttf, $orig-ttf) {
     my $cmap = $ttf.cmap;
     $cmap.elems.&is: 1;
     my $table = $cmap[0];
-    $table.object.format.&is: 12;
-
-    my $groups = $table.object.groups;
-    $groups[0;startCharCode].&is: 0;
-    $groups[0;endCharCode].&is: 0;
-    $groups[0;startGlyphCode].&is: +notdef;
-
-    $groups[1;startCharCode].&is: 32;
-    $groups[1;endCharCode].&is: 32;
-    $groups[1;startGlyphCode].&is: +space;
-
-    $groups[2;startCharCode].&is: ','.ord;
-    $groups[2;endCharCode].&is: ','.ord;
-    $groups[2;startGlyphCode].&is: +comma;
-
-    $groups[3;startCharCode].&is: 'H'.ord;
-    $groups[3;endCharCode].&is: 'H'.ord;
-    $groups[3;startGlyphCode].&is: +H;
-
-    $groups[4;startCharCode].&is: 'd'.ord;
-    $groups[4;endCharCode].&is: 'e'.ord;
-    $groups[4;startGlyphCode].&is: +d;
-
-    $groups[5;startCharCode].&is: 'l'.ord;
-    $groups[5;endCharCode].&is:   'l'.ord;
-    $groups[5;startGlyphCode].&is: +l;
-
-    todo "rebuild other tables", 3;
+    $table.object.format.&is: 4;
+    $ttf.cmap.pack.&is-deeply: buf8.new(
+    # -Header-
+    0,0,       # version
+    0,1,       # numSubtables
+    # -Subtable-
+    0,3,       # platformId
+    0,1,       # encID
+    0,0,0,12,  # offset
+    # - CMAP format 4
+    0,4,       # format
+    0,96,      # length
+    0,0,       # language
+    0,20,      # segCount X 2
+    2,0,       # searchRange
+    0,3,       # entrySelector
+    254,160,   # rangeShift
+    # -endCode-
+      0,  0,   0, 32,   0, 44,   0, 72,   0,101,   0,108,   0,111,   0,114,   0,119, 255,255,
+      0,  0,   # pad
+    # -startCode-
+      0,  0,   0, 32,   0, 44,   0, 72,   0,100,   0,108,   0,111,   0,114,   0,119, 255,255,
+    #  -delta-
+      0,  0, 255,225, 255,214, 255,187, 255,160, 255,154, 255,152, 255,150, 255,146,   0,  1,
+    # -offset-
+      0,  0,   0,  0,   0,  0,   0,  0,   0,  0,   0,  0,   0,  0,  0,  0,    0,  0,   0,  0,
+    );
 }
 
 done-testing();

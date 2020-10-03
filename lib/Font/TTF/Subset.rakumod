@@ -2,6 +2,8 @@ unit class Font::TTF::Subset:ver<0.0.1>;
 
 use Font::TTF;
 use Font::TTF::Table::CMap;
+use Font::TTF::Table::CMap::Format0;
+use Font::TTF::Table::CMap::Format4;
 use Font::TTF::Table::CMap::Format12 :GroupIndex;
 use Font::TTF::Table::HoriHeader;
 use Font::TTF::Table::HoriMetrics;
@@ -21,7 +23,7 @@ has Font::FreeType::Face $.face = do {
     $freetype.face($!fh);
 }
 
-has fontSubset $.raw handles<len charset gids segments>;
+has fontSubset $.raw handles<len segments bmp-len bmp-segments charset gids>;
 
 submethod TWEAK(List:D :$charset!) {
     my CArray[FT_ULong] $codes .= new: $charset.list;
@@ -33,7 +35,7 @@ submethod DESTROY {
 }
 
 # rebuild the glyphs index ('loca') and the glyphs buffer ('glyf')
-method !subset-glyph-tables {
+method !subset-glyf-table {
 
     my Font::TTF::Table::GlyphIndex:D $index = $!ttf.loca;
     my buf8 $glyphs-buf = $!ttf.buf('glyf');
@@ -78,7 +80,7 @@ method !subset-mtx(
 }
 
 # rebuild horizontal metrics
-method !subset-hori-tables {
+method !subset-hmtx-table {
     with $!ttf.hhea -> Font::TTF::Table::HoriHeader $hhea {
         with $!ttf.buf('hmtx') -> buf8 $htmx-buf {
             $hhea.numOfLongHorMetrics = self!subset-mtx($htmx-buf, $hhea.numOfLongHorMetrics);
@@ -88,8 +90,8 @@ method !subset-hori-tables {
     }
 }
 
-# rebuild vertzontal metrics
-method !subset-vert-tables {
+# rebuild vertical metrics
+method !subset-vmtx-table {
     with $!ttf.vhea -> Font::TTF::Table::VertHeader $vhea {
         with $!ttf.buf('vmtx') -> buf8 $vmtx-buf {
             $vhea.numOfLongVerMetrics = self!subset-mtx($vmtx-buf, $vhea.numOfLongVerMetrics);
@@ -99,14 +101,53 @@ method !subset-vert-tables {
     }
 }
 
-method !subset-cmap {
+method !subset-cmap-format0 {
+    my uint8 @glyphIndexArray[255];
+
+    for 0 ..^ $.len {
+        my $ord := $.charset[$_];
+        last if $ord > 255 || $_ > 255;
+        @glyphIndexArray[$_] = $ord;
+    }
+
+    Font::TTF::Table::CMap::Format0.new: :@glyphIndexArray;
+}
+
+method !subset-cmap-format4 {
+    my $segCount = $.segments + 1;
+    my uint16 @startCode[$segCount];
+    my uint16 @endCode[$segCount];
+    my uint16 @idDelta[$segCount];
+    my uint16 @idRangeOffset[$segCount];
+    my uint16 @glyphIndexArray;
+    my Int:D $last-ord := -2;
+    my Int:D $seg = -1;
+
+    for 0 ..^ $.len {
+        my $ord := $.charset[$_];
+        if $ord != $last-ord + 1 {
+            $seg++;
+            @startCode[$seg] = $ord;
+            @idDelta[$seg] = $_ - $ord;
+        }
+        @endCode[$seg] = $ord;
+        $last-ord := $ord;
+    }
+    # add missing glyph
+    ++$seg;
+    @startCode[$seg] = @endCode[$seg] = 0xFFFF;
+    @idDelta[$seg] = 1;
+
+    Font::TTF::Table::CMap::Format4.new: :$segCount, :@startCode, :@endCode, :@idDelta, :@idRangeOffset, :@glyphIndexArray;
+}
+
+method !subset-cmap-format12 {
     my uint32 @groups[$.segments;3];
     my Int:D $last-ord := -2;
     my Int:D $seg = -1;
 
     for 0 ..^ $.len {
         my $ord := $.charset[$_];
-        my $gid := $.gids[$_];
         if $ord != $last-ord + 1 {
             $seg++;
             @groups[$seg;startCharCode] = $ord;
@@ -116,19 +157,34 @@ method !subset-cmap {
         $last-ord := $ord;
     }
 
-    my Font::TTF::Table::CMap::Format12 $format .= new: :@groups;
-    my Font::TTF::Table::CMap $cmap .= new: :$format;
+    Font::TTF::Table::CMap::Format12.new: :@groups;
+}
+
+method !subset-cmap-table {
+    my $max-code := $.charset[$.segments - 1];
+    my $max-gid := $.len;
+    my @tables = (max($max-code - $max-gid, $max-gid) < 0xFFFF
+                  ?? self!subset-cmap-format4()   # 16 bit
+                  !! self!subset-cmap-format12()  # 32 bit
+                 );
+
+    my Font::TTF::Table::CMap $cmap .= new: :@tables;
     $!ttf.upd($cmap);
 }
 
 method apply(Font::TTF::Subset:D:) {
-    my Font::TTF::Table::Header:D $head = $!ttf.head;
     my Font::TTF::Table::MaxProfile:D $maxp = $!ttf.maxp;
+    my Set $retained .= new: <cmap glyf loca head hhea hmtx vhea vmtx maxp fpgm cvt prep>;
 
-    self!subset-glyph-tables();
-    self!subset-hori-tables();
-    self!subset-vert-tables();
-    self!subset-cmap();
+    for $!ttf.tags {
+        $!ttf.delete($_)
+            unless $_ ∈ $retained;
+    }
+
+    self!subset-glyf-table();
+    self!subset-hmtx-table();
+    self!subset-vmtx-table();
+    self!subset-cmap-table();
 
     my $num-glyphs := self.len;
     $!ttf.upd($maxp).numGlyphs = $num-glyphs;
