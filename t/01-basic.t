@@ -1,5 +1,5 @@
 use Test;
-plan 6;
+plan 7;
 use Font::TTF::Subset;
 use NativeCall;
 
@@ -10,7 +10,8 @@ constant segment-count = 9;
 
 my Font::TTF::Subset $subset .= new: :$fh, :@charset;
 # charset + notdef
-is $subset.len, +@charset+1;  # charset + notdef
+is $subset.charset-len, +@charset+1;  # charset + notdef
+is $subset.gids-len, +@charset+1;     # no composites
 is $subset.segments, segment-count;
 is $subset.charset[1], 32;
 is $subset.gids[1], 3;

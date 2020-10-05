@@ -12,13 +12,16 @@ debug :
 coverage :
 	%MAKE% "DBG=-fprofile-arcs -ftest-coverage" "LD_DBG=-coverage -lgcov" all
 
-resources/libraries/%LIB-NAME% : $(SRC)/sfnt_subset%O%
+resources/libraries/%LIB-NAME% : $(SRC)/sfnt_subset%O% $(SRC)/sfnt_glyph%O%
 	%LD% %LDSHARED% %LDFLAGS% %LDOUT%resources/libraries/%LIB-NAME% \
-	$(SRC)/sfnt_subset%O% \
+	$(SRC)/sfnt_subset%O% $(SRC)/sfnt_glyph%O% \
 	%LIB-LDFLAGS% $(LD_DBG) 
 
 $(SRC)/sfnt_subset%O% : $(SRC)/sfnt_subset.c $(SRC)/sfnt_subset.h
 	%CC% -I $(SRC) -c %CCSHARED% %CCFLAGS% %CCOUT%$(SRC)/sfnt_subset%O% $(SRC)/sfnt_subset.c %LIB-CFLAGS% $(DBG)
+
+$(SRC)/sfnt_glyph%O% : $(SRC)/sfnt_glyph.c $(SRC)/sfnt_glyph.h  $(SRC)/sfnt_subset.h
+	%CC% -I $(SRC) -c %CCSHARED% %CCFLAGS% %CCOUT%$(SRC)/sfnt_glyph%O% $(SRC)/sfnt_glyph.c %LIB-CFLAGS% $(DBG)
 
 
 test : all

@@ -19,11 +19,12 @@ my Font::FreeType $freetype;
 has IO::Handle $.fh is required;
 has Font::TTF:D $.ttf .= new: :$!fh;
 has Font::FreeType::Face $.face = do {
-    $_ .= new without $freetype;
-    $freetype.face($!fh);
+    my $load-flags := FT_LOAD_NO_RECURSE;
+    $_ .= new(:$load-flags) without $freetype;
+    $freetype.face($!fh, );
 }
 
-has fontSubset $.raw handles<len segments bmp-len bmp-segments charset gids>;
+has fontSubset $.raw handles<segments charset gids charset-len gids-len>;
 
 submethod TWEAK(List:D :$charset!) {
     my CArray[FT_ULong] $codes .= new: $charset.list;
@@ -36,14 +37,13 @@ submethod DESTROY {
 
 # rebuild the glyphs index ('loca') and the glyphs buffer ('glyf')
 method !subset-glyf-table {
-
     my Font::TTF::Table::GlyphIndex:D $index = $!ttf.loca;
     my buf8 $glyphs-buf = $!ttf.buf('glyf');
 
     my $glyph-bytes := $!raw.subset-glyphs($index.offsets, $glyphs-buf);
 
     $glyphs-buf.reallocate($glyph-bytes);
-    $index.num-glyphs = self.len;
+    $index.num-glyphs = self.gids-len;
 
     $!ttf.upd($index);
     $!ttf.upd($glyphs-buf, :tag<glyf>)
@@ -54,7 +54,7 @@ method !subset-mtx(
 ) {
     # todo: rewrite in C
     my $ss-num-long-metrics = 0;
-    my $ss-num-glyphs = $.len;
+    my $ss-num-glyphs = $.gids-len;
     my $gid-map := $.gids;
 
     for 0 ..^ $ss-num-glyphs -> $ss-gid {
@@ -104,7 +104,7 @@ method !subset-vmtx-table {
 method !subset-cmap-format0 {
     my uint8 @glyphIndexArray[255];
 
-    for 0 ..^ $.len {
+    for 0 ..^ $.charset-len {
         my $ord := $.charset[$_];
         last if $ord > 255 || $_ > 255;
         @glyphIndexArray[$_] = $ord;
@@ -123,7 +123,7 @@ method !subset-cmap-format4 {
     my Int:D $last-ord := -2;
     my Int:D $seg = -1;
 
-    for 0 ..^ $.len {
+    for 0 ..^ $.charset-len {
         my $ord := $.charset[$_];
         if $ord != $last-ord + 1 {
             $seg++;
@@ -146,7 +146,7 @@ method !subset-cmap-format12 {
     my Int:D $last-ord := -2;
     my Int:D $seg = -1;
 
-    for 0 ..^ $.len {
+    for 0 ..^ $.charset-len {
         my $ord := $.charset[$_];
         if $ord != $last-ord + 1 {
             $seg++;
@@ -161,8 +161,8 @@ method !subset-cmap-format12 {
 }
 
 method !subset-cmap-table {
-    my $max-code := $.charset[$.segments - 1];
-    my $max-gid := $.len;
+    my $max-code := $.charset[$.charset-len - 1];
+    my $max-gid := $.gids-len;
     my @tables = (max($max-code - $max-gid, $max-gid) < 0xFFFF
                   ?? self!subset-cmap-format4()   # 16 bit
                   !! self!subset-cmap-format12()  # 32 bit
@@ -186,7 +186,7 @@ method apply(Font::TTF::Subset:D:) {
     self!subset-vmtx-table();
     self!subset-cmap-table();
 
-    my $num-glyphs := self.len;
+    my $num-glyphs := self.gids-len;
     $!ttf.upd($maxp).numGlyphs = $num-glyphs;
     $!ttf
 }

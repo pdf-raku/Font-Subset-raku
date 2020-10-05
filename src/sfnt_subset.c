@@ -1,4 +1,5 @@
 #include "sfnt_subset.h"
+#include "sfnt_glyph.h"
 #include <memory.h>
 #include <stdio.h>
 
@@ -16,38 +17,40 @@ sfnt_subset_create(FT_Face font, FT_ULong *charset, size_t len) {
     size_t i;
     sfntSubsetPtr self = (sfntSubsetPtr)malloc(sizeof(struct _sfntSubset));
     self->font = font;
-    self->len = 0;
     self->segments = 0;
+    self->charset_len = 0;
     self->charset = calloc(len + 2, sizeof(FT_ULong));
-    self->gids = calloc(len + 2, sizeof(FT_UInt));
+    // allow some extra space for compoent glyphs
+    self->gids_size = len * 1.5 + 3;
+    self->gids = calloc(self->gids_size, sizeof(FT_UInt));
+    self->gids_len = 0;
     self->fail = NULL;
 
     // Add .notdef
-    self->gids[0] = 0;
-    self->charset[0] = 0;
-    self->len++;
+    self->gids[self->gids_len++] = 0;
+    self->charset[self->charset_len++] = 0;
     self->segments++;
 
-    for (i = charset[0] ? 0: 1; i <= len; i++) {
+    for (i = 0; i < len; i++) {
         FT_ULong code = charset[i];
         FT_UInt gid;
+
         if (i && code <= charset[i-1]) {
             sfnt_subset_fail(self, "charset is not unique and in ascending order");
             break;
         }
         gid = FT_Get_Char_Index(font, code);
         if (gid != 0) {
-            if (self->charset[self->len-1]+1 != code) {
+            if (self->charset[self->charset_len-1]+1 != code) {
                 self->segments++;
             }
-            self->gids[self->len] = gid;
-            self->charset[self->len] = code;
-            self->len++;
+            self->gids[self->gids_len++] = gid;
+            self->charset[self->charset_len++] = code;
         }
     }
 
-    self->gids[self->len] = 0;
-    self->charset[self->len] = 0;
+    self->gids[self->gids_len] = 0;
+    self->charset[self->charset_len] = 0;
     return self;
 }
 
@@ -56,7 +59,7 @@ DLLEXPORT uint16_t
 sfnt_subset_repack_glyphs_16(sfntSubsetPtr self, uint16_t* loc_idx, uint8_t* glyphs) {
     uint16_t glyph_new = 0; // glyph write postion
     FT_UInt  gid_new;       // new (written) GID
-    for (gid_new = 0; gid_new <= self->len; gid_new++) {
+    for (gid_new = 0; gid_new <= self->gids_len; gid_new++) {
         FT_UInt  gid_old = self->gids[gid_new];
         uint32_t glyph_old = loc_idx[gid_old];
         int32_t  glyph_len = loc_idx[gid_old+1] - glyph_old;
@@ -78,6 +81,8 @@ sfnt_subset_repack_glyphs_16(sfntSubsetPtr self, uint16_t* loc_idx, uint8_t* gly
             glyphs[glyph_new++] = glyphs[glyph_old++];
         }
 
+        // merge in any composite glyph components.
+        sfnt_glyph_add_components(self, glyphs + glyph_new - glyph_len, glyph_len);
     }
     loc_idx[gid_new] = glyph_new;
 
