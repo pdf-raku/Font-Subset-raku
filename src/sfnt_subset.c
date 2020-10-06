@@ -17,7 +17,6 @@ sfnt_subset_create(FT_Face font, FT_ULong *charset, size_t len) {
     size_t i;
     sfntSubsetPtr self = (sfntSubsetPtr)malloc(sizeof(struct _sfntSubset));
     self->font = font;
-    self->segments = 0;
     self->charset_len = 0;
     self->charset = calloc(len + 2, sizeof(FT_ULong));
     // allow some extra space for compoent glyphs
@@ -29,24 +28,14 @@ sfnt_subset_create(FT_Face font, FT_ULong *charset, size_t len) {
     // Add .notdef
     self->gids[self->gids_len++] = 0;
     self->charset[self->charset_len++] = 0;
-    self->segments++;
 
     for (i = 0; i < len; i++) {
         FT_ULong code = charset[i];
         FT_UInt gid;
 
-        if (i && code <= charset[i-1]) {
-            sfnt_subset_fail(self, "charset is not unique and in ascending order");
-            break;
-        }
         gid = FT_Get_Char_Index(font, code);
-        if (gid != 0) {
-            if (self->charset[self->charset_len-1]+1 != code) {
-                self->segments++;
-            }
-            self->gids[self->gids_len++] = gid;
-            self->charset[self->charset_len++] = code;
-        }
+        self->gids[self->gids_len++] = gid;
+        self->charset[self->charset_len++] = code;
     }
 
     self->gids[self->gids_len] = 0;

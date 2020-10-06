@@ -8,7 +8,6 @@
 
 struct _sfntSubset {
     FT_Face font;
-    size_t segments;
     // 1 - 1 mapping of existing characters and gids
     // charset_len <= gid_len
     FT_ULong *charset;

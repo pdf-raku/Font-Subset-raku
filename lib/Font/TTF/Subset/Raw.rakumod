@@ -8,8 +8,7 @@ use NativeCall;
 class fontSubset is repr('CStruct') is export {
 
     has FT_Face $.face;
-    has size_t $.segments;
-    # characters and corresponding gids 
+    # characters and corresponding original gids 
     has CArray[FT_ULong] $.charset;
     has CArray[FT_UInt] $.gids;
     # additional composite glyph components

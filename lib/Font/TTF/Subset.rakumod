@@ -24,11 +24,29 @@ has Font::FreeType::Face $.face = do {
     $freetype.face($!fh, );
 }
 
-has fontSubset $.raw handles<segments charset gids charset-len gids-len>;
+has fontSubset $.raw handles<charset gids charset-len gids-len>;
+has uint16 @!index;
+has UInt $.segments is built;
 
-submethod TWEAK(List:D :$charset!) {
-    my CArray[FT_ULong] $codes .= new: $charset.list;
+method !count-segments {
+    my $segs = 1;
+    my $last-gid := @!index[0];
+
+    for 1 ..^ $!raw.charset-len {
+        my $gid := @!index[$_];
+        $segs++
+            unless $gid == $last-gid + 1
+            && $!raw.charset[$gid] == $!raw.charset[$last-gid] + 1;
+        $last-gid := $gid;
+    }
+    $segs;
+}
+
+submethod TWEAK(:@charset!) {
+    my CArray[FT_ULong] $codes .= new: @charset.unique;
     $!raw = fontSubset::create($!face.raw, $codes, $codes.elems);
+    @!index = (0 ..^ $!raw.charset-len).sort({$!raw.charset[$_]});
+    $!segments = self!count-segments();
 }
 
 submethod DESTROY {
@@ -53,30 +71,30 @@ method !subset-mtx(
     buf8 $mtx-buf, $num-long-metrics
 ) {
     # todo: rewrite in C
-    my $ss-num-long-metrics = 0;
-    my $ss-num-glyphs = $.gids-len;
-    my $gid-map := $.gids;
+    my $new-num-long-metrics = 0;
+    my $new-num-glyphs = $.gids-len;
+    my $old-gids := $.gids;
 
-    for 0 ..^ $ss-num-glyphs -> $ss-gid {
-        my $gid = $gid-map[$ss-gid];
-        if $gid >= $num-long-metrics {
+    for 0 ..^ $new-num-glyphs -> $new-gid {
+        my $old-gid = $old-gids[$new-gid];
+        if $old-gid >= $num-long-metrics {
             # repack short metric
-            my $from-offset := 2 * $num-long-metrics + 2 * $gid;
-            my $to-offset := 2 * $ss-num-long-metrics + 2 * $ss-gid;
+            my $from-offset := 2 * $num-long-metrics + 2 * $old-gid;
+            my $to-offset := 2 * $new-num-long-metrics + 2 * $new-gid;
             $mtx-buf.subbuf-rw($to-offset, 2) = $mtx-buf.subbuf($from-offset, 2)
-            unless $from-offset == $to-offset;
+                unless $from-offset == $to-offset;
         }
         else {
             # repack long metric
-            my $from-offset := 4 * $gid;
-            my $to-offset := 4 * $ss-gid;
-            $ss-num-long-metrics++;
+            my $from-offset := 4 * $old-gid;
+            my $to-offset := 4 * $new-gid;
+            $new-num-long-metrics++;
             $mtx-buf.subbuf-rw($to-offset, 4) = $mtx-buf.subbuf($from-offset, 4)
-            unless $from-offset == $to-offset;
+                unless $from-offset == $to-offset;
         }
     }
-    $mtx-buf.reallocate($ss-num-glyphs * 2  +  $ss-num-long-metrics * 2);
-    $ss-num-long-metrics;
+    $mtx-buf.reallocate($new-num-glyphs * 2  +  $new-num-long-metrics * 2);
+    $new-num-long-metrics;
 }
 
 # rebuild horizontal metrics
@@ -114,24 +132,28 @@ method !subset-cmap-format0 {
 }
 
 method !subset-cmap-format4 {
-    my $segCount = $.segments + 1;
+    my $segCount = $!segments + 1;
     my uint16 @startCode[$segCount];
     my uint16 @endCode[$segCount];
     my uint16 @idDelta[$segCount];
     my uint16 @idRangeOffset[$segCount];
     my uint16 @glyphIndexArray;
     my Int:D $last-ord := -2;
+    my Int:D $last-gid := -2;
     my Int:D $seg = -1;
 
+
     for 0 ..^ $.charset-len {
-        my $ord := $.charset[$_];
-        if $ord != $last-ord + 1 {
+        my $gid = @!index[$_];
+        my $ord := $.charset[$gid];
+        unless $ord == $last-ord + 1 && $gid == $last-gid + 1 {
             $seg++;
             @startCode[$seg] = $ord;
-            @idDelta[$seg] = $_ - $ord;
+            @idDelta[$seg] = $gid - $ord;
         }
         @endCode[$seg] = $ord;
         $last-ord := $ord;
+        $last-gid := $gid;
     }
     # add missing glyph
     ++$seg;
@@ -142,16 +164,17 @@ method !subset-cmap-format4 {
 }
 
 method !subset-cmap-format12 {
-    my uint32 @groups[$.segments;3];
+    my uint32 @groups[$!segments;3];
     my Int:D $last-ord := -2;
     my Int:D $seg = -1;
 
     for 0 ..^ $.charset-len {
-        my $ord := $.charset[$_];
+        my $gid = @!index[$_];
+        my $ord := $.charset[$gid];
         if $ord != $last-ord + 1 {
             $seg++;
             @groups[$seg;startCharCode] = $ord;
-            @groups[$seg;startGlyphCode] = $_;
+            @groups[$seg;startGlyphCode] = $gid;
         }
         @groups[$seg;endCharCode] = $ord;
         $last-ord := $ord;
@@ -161,7 +184,7 @@ method !subset-cmap-format12 {
 }
 
 method !subset-cmap-table {
-    my $max-code := $.charset[$.charset-len - 1];
+    my $max-code := $.charset[@!index.tail];
     my $max-gid := $.gids-len;
     my @tables = (max($max-code - $max-gid, $max-gid) < 0xFFFF
                   ?? self!subset-cmap-format4()   # 16 bit
