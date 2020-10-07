@@ -20,8 +20,8 @@ class fontSubset is repr('CStruct') is export {
     our sub create(FT_Face, CArray[FT_ULong] $codes, size_t --> fontSubset)
         is native($SFNT-SUBSET-LIB) is symbol('sfnt_subset_create') {*}
     method new(|) {...}
-    method subset-glyphs(CArray[uint16], buf8 --> uint16)
-        is native($SFNT-SUBSET-LIB) is symbol('sfnt_subset_repack_glyphs_16') {*}
+    method add-glyph-components(buf8, size_t)
+        is native($SFNT-SUBSET-LIB) is symbol('sfnt_glyph_add_components') {*}
     method done is native($SFNT-SUBSET-LIB) is symbol('sfnt_subset_done') {*}
 }
 

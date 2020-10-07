@@ -43,41 +43,6 @@ sfnt_subset_create(FT_Face font, FT_ULong *charset, size_t len) {
     return self;
 }
 
-// in-place repacking of both an 16-bit location index and corresponding glyph buffer
-DLLEXPORT uint16_t
-sfnt_subset_repack_glyphs_16(sfntSubsetPtr self, uint16_t* loc_idx, uint8_t* glyphs) {
-    uint16_t glyph_new = 0; // glyph write postion
-    FT_UInt  gid_new;       // new (written) GID
-    for (gid_new = 0; gid_new <= self->gids_len; gid_new++) {
-        FT_UInt  gid_old = self->gids[gid_new];
-        uint32_t glyph_old = loc_idx[gid_old];
-        int32_t  glyph_len = loc_idx[gid_old+1] - glyph_old;
-        uint16_t i;
-
-        if (glyph_len < 0) {
-            sfnt_subset_fail(self, "subset location index is not ascending");
-            return 0;
-        }
-
-        // convert 2 byte words addressing to bytes
-        glyph_old *= 2;
-        glyph_len *= 2;
-
-        // update location index (word addressing)
-        loc_idx[gid_new] = glyph_new / 2;
-
-        for (i = 0; i < glyph_len; i++) {
-            glyphs[glyph_new++] = glyphs[glyph_old++];
-        }
-
-        // merge in any composite glyph components.
-        sfnt_glyph_add_components(self, glyphs + glyph_new - glyph_len, glyph_len);
-    }
-    loc_idx[gid_new] = glyph_new;
-
-    return glyph_new;
-}
-
 static void _done(void** p) {
     if (*p != NULL) {
         free(*p);

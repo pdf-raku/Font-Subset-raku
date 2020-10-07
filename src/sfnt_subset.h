@@ -34,6 +34,5 @@ typedef sfntSubset *sfntSubsetPtr;
 DLLEXPORT sfntSubsetPtr sfnt_subset_create(FT_Face, FT_ULong*, size_t);
 DLLEXPORT void sfnt_subset_fail(sfntSubsetPtr, const char*);
 DLLEXPORT void sfnt_subset_done(sfntSubsetPtr);
-DLLEXPORT uint16_t sfnt_subset_repack_glyphs_16(sfntSubsetPtr, uint16_t*, uint8_t*);
 
 #endif /* __SFNT_SUBSET_H */

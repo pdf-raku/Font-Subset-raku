@@ -11,11 +11,6 @@ my Font::FreeType $freetype .= new;
 
 creates an embedded subset via Cairo for comparision with t/ttf-subset.t
 
-=item to then extract font:
-
-    use PDF::Reader;
-    my PDF::Reader $r .= new.open: "etc/cairo-subset.pdf";
-    etc/cairo-subset.ttf".IO.open(:w).write: $r.ind-obj(7, 0).object.decoded;'
 =item to inspect the font
 
     $ pyftinspect etc/cairo-subset.ttf 
@@ -34,9 +29,16 @@ given Cairo::Surface::PDF.create("etc/cairo-subset.pdf", 256, 256) {
         .move_to(10, 10);
         .set_font_size(10.0);
         .set_font_face($font);
-        .show_text("Hello, world");
+        .show_text("Hello, ½world");
     };
     .show_page;
     .finish;
 }
+
+my $font-file = "etc/cairo-subset.pdf";
+note "extracting font... $font-file";
+
+use PDF::Reader;
+my PDF::Reader $r .= new.open: $font-file;
+"etc/cairo-subset.ttf".IO.open(:w).write: $r.ind-obj(7, 0).object.decoded;
 
