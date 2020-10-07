@@ -20,7 +20,7 @@ static FT_UInt add_gid(sfntSubsetPtr self, FT_UInt old_gid) {
         // extend
         self->gids_size += 2;
         self->gids_size *= 1.5;
-        self->gids = (FT_UInt*) realloc((void*) self->gids, self->gids_size * sizeof(*self->gids));
+        self->gids = (FT_UInt*) realloc((void*) self->gids, self->gids_size * sizeof(FT_UInt));
     }
     self->gids[self->gids_len] = old_gid;
     return self->gids_len++;
@@ -81,6 +81,12 @@ sfnt_glyph_add_components(
 
         old_gid = be16_to_cpu (composite_glyph->index);
         new_gid = use_gid(self, old_gid);
+        if (new_gid == 0) {
+            char msg[80];
+            sprintf(msg, "unable to resolve composite gid reference: %d", old_gid);
+            sfnt_subset_fail(self, msg);
+            return 0;
+        }
 
         composite_glyph->index = cpu_to_be16 (new_gid);
 

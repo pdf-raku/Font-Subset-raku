@@ -64,12 +64,17 @@ method !subset-glyf-table {
     loop (my $i = 0; $i < $.gids-len; $i++) {
         my $old-gid = $.gids[$i];
         my $offset = $old-loca[$old-gid];
-        my UInt $len = $old-loca[$old-gid + 1] - $offset;
+        my $end = $old-loca[$old-gid + 1];
+        my UInt $len = $end - $offset;
         my $buf = $old-glyphs-buf.subbuf($offset, $len);
+        my $buf-old = $buf.clone;
         $offsets[$i] = $glyphs-buf.bytes div 2;
-        $glyphs-buf.append: $buf;
-        # extract any unseen composite glyphs (may increase $.gids-len)
-        $!raw.add-glyph-components($buf, $buf.bytes);
+        # extract any unseen composite glyphs, update buffer references
+        if $buf.bytes {
+            $!raw.add-glyph-components($buf, $buf.bytes)
+                || warn "unable to add glyph components";
+            $glyphs-buf.append: $buf;
+        }
     }
 
     $offsets[$.gids-len] = $glyphs-buf.bytes div 2;
@@ -117,7 +122,6 @@ method !subset-cmap-format4 {
     my Int:D $last-ord := -2;
     my Int:D $last-gid := -2;
     my Int:D $seg = -1;
-
 
     for 0 ..^ $.charset-len {
         my $gid = @!index[$_];
