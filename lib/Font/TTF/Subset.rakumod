@@ -79,52 +79,19 @@ method !subset-glyf-table {
     $!ttf.upd($glyphs-buf, :tag<glyf>)
 }
 
-method !subset-mtx(
-    buf8 $old-mtx-buf, buf8 $mtx-buf, $num-long-metrics
-) {
-    # todo: rewrite in C
-    my $new-num-long-metrics = 0;
-    my $new-num-glyphs = $.gids-len;
-    my $old-gids := $.gids;
-
-    for 0 ..^ $new-num-glyphs -> $new-gid {
-        my $old-gid = $old-gids[$new-gid];
-        if $old-gid >= $num-long-metrics {
-            # repack short metric
-            my $from-offset := 2 * $num-long-metrics + 2 * $old-gid;
-            $mtx-buf.append: $old-mtx-buf.subbuf($from-offset, 2);
-        }
-        else {
-            # repack long metric
-            my $from-offset := 4 * $old-gid;
-            $new-num-long-metrics++;
-            $mtx-buf.append: $old-mtx-buf.subbuf($from-offset, 4);
-        }
-    }
-    $new-num-long-metrics;
-}
-
 # rebuild horizontal metrics
 method !subset-hmtx-table {
-    with $!ttf.hhea -> Font::TTF::Table::HoriHeader $hhea {
-        with $!ttf.buf('hmtx') -> buf8 $htmx-buf-old {
-            my buf8 $htmx-buf .= new; 
-            $hhea.numOfLongHorMetrics = self!subset-mtx($htmx-buf-old, $htmx-buf, $hhea.numOfLongHorMetrics);
-            $!ttf.upd($htmx-buf, :tag<hmtx>);
-            $!ttf.upd($hhea);
-        }
+    with $!ttf.hmtx -> $hmtx {
+        my @metrics = (0 ..^ $.gids-len).map: {$hmtx[$.gids[$_]]};
+        $!ttf.upd: $hmtx.new(:@metrics, :loader($!ttf));
     }
 }
 
 # rebuild vertical metrics
 method !subset-vmtx-table {
-    with $!ttf.vhea -> Font::TTF::Table::VertHeader $vhea {
-        with $!ttf.buf('vmtx') -> buf8 $vmtx-buf-old {
-            my buf8 $vmtx-buf .= new;
-            $vhea.numOfLongVerMetrics = self!subset-mtx($vmtx-buf-old, $vmtx-buf, $vhea.numOfLongVerMetrics);
-            $!ttf.upd($vmtx-buf, :tag<vmtx>);
-            $!ttf.upd($vhea);
-        }
+    with $!ttf.vmtx -> $vmtx {
+        my @metrics = (0 ..^ $.gids-len).map: {$vmtx[$.gids[$_]]};
+        $!ttf.upd: $vmtx.new(:@metrics, :loader($!ttf));
     }
 }
 
@@ -220,6 +187,10 @@ method apply(Font::TTF::Subset:D:) {
 
     my $num-glyphs := self.gids-len;
     $!ttf.upd($maxp).numGlyphs = $num-glyphs;
+
+    # set 2 byte location indexing
+    $!ttf.upd('head').indexToLocFormat = 0
+        if $!ttf.head.indexToLocFormat;
 
     $!ttf
 }
