@@ -1,6 +1,7 @@
-unit class Font::TTF::Subset:ver<0.0.1>;
+unit class Font::Subset::TTF:ver<0.0.1>;
 
 use Font::TTF;
+use Font::TTF::Raw;
 use Font::TTF::Table::CMap;
 use Font::TTF::Table::CMap::Format0;
 use Font::TTF::Table::CMap::Format4;
@@ -10,7 +11,7 @@ use Font::TTF::Table::HoriHeader;
 use Font::TTF::Table::HoriMetrics;
 use Font::TTF::Table::VertHeader;
 use Font::TTF::Table::VertMetrics;
-use Font::TTF::Subset::Raw;
+use Font::Subset::TTF::Raw;
 use Font::FreeType;
 use Font::FreeType::Face;
 use Font::FreeType::Raw::Defs;
@@ -175,7 +176,7 @@ method !subset-cmap-table {
     $!ttf.upd($cmap);
 }
 
-method apply(Font::TTF::Subset:D:) {
+method apply(Font::Subset::TTF:D:) {
     my Font::TTF::Table::MaxProfile:D $maxp = $!ttf.maxp;
     my Set $retained .= new: <cmap glyf loca head hhea hmtx vhea vmtx maxp fpgm cvt prep>;
 
@@ -191,10 +192,11 @@ method apply(Font::TTF::Subset:D:) {
 
     my $num-glyphs := self.gids-len;
     $!ttf.upd($maxp).numGlyphs = $num-glyphs;
-
-    # set 2 byte location indexing
-    $!ttf.upd('head').indexToLocFormat = 0
-        if $!ttf.head.indexToLocFormat;
+    given $!ttf.head {
+        # set 2 byte location indexing
+        $!ttf.upd($_).indexToLocFormat = 0
+            if .indexToLocFormat;
+    }
 
     $!ttf
 }

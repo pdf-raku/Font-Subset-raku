@@ -1,5 +1,5 @@
 SRC=src
-TRAVIS=https://travis-ci.org/pdf-raku/Font-TTF-Subset-raku
+TRAVIS=https://travis-ci.org/pdf-raku/Font-Subset-raku
 
 all : lib
 

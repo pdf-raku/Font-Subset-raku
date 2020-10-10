@@ -1,2 +1,0 @@
-#| Type and Enumeration declarations
-unit module Font::FreeType::Raw::Defs;

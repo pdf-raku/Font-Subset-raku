@@ -13,19 +13,18 @@
   ],
   "description": "Font subsetting utility",
   "license": "Artistic-2.0",
-  "name": "Font::TTF::Subset",
+  "name": "Font::Subset",
   "perl": "6.*",
   "provides": {
-      "Font::TTF::Subset": "lib/Font/TTF/Subset.rakumod",
-      "Font::TTF::Subset::Defs": "lib/Font/TTF/Subset/Defs.rakumod",
-      "Font::TTF::Subset::Raw": "lib/Font/TTF/Subset/Raw.rakumod"
+      "Font::Subset::TTF": "lib/Font/Subset/TTF.rakumod",
+      "Font::Subset::TTF::Defs": "lib/Font/Subset/TTF/Defs.rakumod",
+      "Font::Subset::TTF::Raw": "lib/Font/Subset/TTF/Raw.rakumod"
   },
   "resources": [
     "libraries/sfnt-subset"
   ],
-  "source-url": "git://github.com/pdf-raku/PDF-Font-Subset-raku.git",
+  "source-url": "git://github.com/pdf-raku/Font-Subset-raku.git",
   "tags": [
-    "pdf",
     "font"
   ],
   "test-depends": [

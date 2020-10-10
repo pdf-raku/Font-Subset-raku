@@ -1,6 +1,6 @@
 use Test;
 plan 50;
-use Font::TTF::Subset;
+use Font::Subset::TTF;
 use Font::TTF;
 use Font::TTF::Table::CMap::Format12 :GroupIndex;
 use NativeCall;
@@ -14,7 +14,7 @@ enum OrigGids (
 my $fh = "t/fonts/Vera.ttf".IO.open(:r, :bin);
 
 my Font::TTF $orig-ttf .= new: :$fh;
-my Font::TTF::Subset $subset .= new: :$fh, :@charset;
+my Font::Subset::TTF $subset .= new: :$fh, :@charset;
 my Font::TTF:D $ttf = $subset.apply;
 
 do-subset-tests($ttf, $orig-ttf);

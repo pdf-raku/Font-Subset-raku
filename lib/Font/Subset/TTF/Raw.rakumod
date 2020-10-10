@@ -1,8 +1,8 @@
-unit module Font::TTF::Subset::Raw;
+unit module Font::Subset::TTF::Raw;
 
 use Font::FreeType::Raw;
 use Font::FreeType::Raw::Defs;
-use Font::TTF::Subset::Defs;
+use Font::Subset::TTF::Defs;
 use NativeCall;
 
 class fontSubset is repr('CStruct') is export {

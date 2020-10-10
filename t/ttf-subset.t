@@ -1,6 +1,6 @@
 use Test;
-plan 48;
-use Font::TTF::Subset;
+plan 50;
+use Font::Subset::TTF;
 use Font::TTF;
 use Font::TTF::Table::CMap::Format12 :GroupIndex;
 use NativeCall;
@@ -13,9 +13,9 @@ enum OrigGids (
 );
 
 my $fh = "t/fonts/Vera.ttf".IO.open(:r, :bin);
-
 my Font::TTF $orig-ttf .= new: :$fh;
-my Font::TTF::Subset $subset .= new: :$fh, :@charset;
+my Font::Subset::TTF $subset .= new: :$fh, :@charset;
+
 my Font::TTF:D $ttf = $subset.apply;
 
 do-subset-tests($ttf, $orig-ttf);
@@ -26,6 +26,17 @@ $fh = "tmp/subset.ttf".IO.open(:r, :bin);
 $ttf .= new: :$fh;
 
 do-subset-tests($ttf, $orig-ttf);
+
+do {
+    # check that we've defeated FreeType cacheing
+    use Font::FreeType;
+    my Font::FreeType $ft .= new;
+    my $orig-face = $ft.face: $orig-ttf.Blob;
+    my $subset-face = $ft.face: $ttf.Blob;
+
+    is $orig-face.num-glyphs, 268;
+    is $subset-face.num-glyphs, 10;
+}
 
 todo "rebuild other tables", 2;
 flunk('name');

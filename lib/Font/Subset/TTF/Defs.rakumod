@@ -1,5 +1,5 @@
 #| Type and Enumeration declarations
-unit module Font::TTF::Subset::Defs;
+unit module Font::Subset::TTF::Defs;
 
 # additional C bindings
 our $SFNT-SUBSET-LIB is export = %?RESOURCES<libraries/sfnt-subset>;
