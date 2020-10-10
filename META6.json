@@ -16,6 +16,7 @@
   "name": "Font::Subset",
   "perl": "6.*",
   "provides": {
+      "Font::Subset": "lib/Font/Subset.rakumod",
       "Font::Subset::TTF": "lib/Font/Subset/TTF.rakumod",
       "Font::Subset::TTF::Defs": "lib/Font/Subset/TTF/Defs.rakumod",
       "Font::Subset::TTF::Raw": "lib/Font/Subset/TTF/Raw.rakumod"
