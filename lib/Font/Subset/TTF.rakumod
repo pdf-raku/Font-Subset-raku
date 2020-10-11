@@ -18,13 +18,8 @@ use Font::FreeType::Raw::Defs;
 use NativeCall;
 
 my Font::FreeType $freetype;
-has IO::Handle $.fh is required;
-has Font::TTF:D $.ttf .= new: :$!fh;
-has Font::FreeType::Face $.face = do {
-    my $load-flags := FT_LOAD_NO_RECURSE;
-    $_ .= new(:$load-flags) without $freetype;
-    $freetype.face($!fh, );
-}
+has Font::TTF $.ttf handles <Blob Buf> is built;
+has Font::FreeType::Face:D $.face is required;
 
 has fontSubset $.raw handles<charset gids charset-len gids-len>;
 has uint16 @!index;
@@ -44,11 +39,13 @@ method !count-segments {
     $segs;
 }
 
-submethod TWEAK(:@charset!) {
+submethod TWEAK(:@charset!, |c) {
     my CArray[FT_ULong] $codes .= new: @charset.unique;
     $!raw = fontSubset::create($!face.raw, $codes, $codes.elems);
     @!index = (0 ..^ $!raw.charset-len).sort({$!raw.charset[$_]});
+    $!ttf .= new: |c;
     $!segments = self!count-segments();
+    self!build-subset();
 }
 
 submethod DESTROY {
@@ -176,7 +173,7 @@ method !subset-cmap-table {
     $!ttf.upd($cmap);
 }
 
-method apply(Font::Subset::TTF:D:) {
+method !build-subset(Font::Subset::TTF:D:) {
     my Font::TTF::Table::MaxProfile:D $maxp = $!ttf.maxp;
     my Set $retained .= new: <cmap glyf loca head hhea hmtx vhea vmtx maxp fpgm cvt prep>;
 

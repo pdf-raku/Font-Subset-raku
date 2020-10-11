@@ -16,7 +16,7 @@ my $fh = "t/fonts/Vera.ttf".IO.open(:r, :bin);
 
 my Font::TTF $orig-ttf .= new: :$fh;
 my Font::Subset::TTF $subset .= new: :$fh, :@charset;
-my Font::TTF:D $ttf = $subset.apply;
+my Font::TTF:D $ttf = $subset.ttf;
 
 do-subset-tests($ttf, $orig-ttf);
 
