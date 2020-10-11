@@ -17,9 +17,8 @@ use Font::FreeType::Face;
 use Font::FreeType::Raw::Defs;
 use NativeCall;
 
-my Font::FreeType $freetype;
 has Font::TTF $.ttf handles <Blob Buf> is built;
-has Font::FreeType::Face:D $.face is required;
+has Font::FreeType::Face $.face;
 
 has fontSubset $.raw handles<charset gids charset-len gids-len>;
 has uint16 @!index;
@@ -39,8 +38,13 @@ method !count-segments {
     $segs;
 }
 
+method !load-face(:$fh, :$buf) {
+    Font::FreeType.new.face($fh || $buf);
+}
+
 submethod TWEAK(:@charset!, |c) {
     my CArray[FT_ULong] $codes .= new: @charset.unique;
+    $!face //= self!load-face(|c);
     $!raw = fontSubset::create($!face.raw, $codes, $codes.elems);
     @!index = (0 ..^ $!raw.charset-len).sort({$!raw.charset[$_]});
     $!ttf .= new: |c;

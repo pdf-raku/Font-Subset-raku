@@ -8,8 +8,7 @@
   ],
     "depends": [
       "CStruct::Packing",
-      "Font::FreeType",
-      "File::Temp"
+      "Font::FreeType"
   ],
   "description": "Font subsetting utility",
   "license": "Artistic-2.0",

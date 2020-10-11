@@ -1,0 +1,9 @@
+use Font::Subset::TTF;
+
+unit class Font::Subset
+    is Font::Subset::TTF;
+
+method can-subset( Font::FreeType::Face :$face! --> Bool) {
+    $face.font-format ~~ 'TrueType';
+}
+
