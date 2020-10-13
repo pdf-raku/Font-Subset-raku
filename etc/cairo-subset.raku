@@ -17,28 +17,32 @@ creates an embedded subset via Cairo for comparision with t/ttf-subset.t
 
 =end pod
 
-given Cairo::Surface::PDF.create("etc/cairo-subset.pdf", 256, 256) {
-    given Cairo::Context.new($_) {
+sub cairo-subset($font-in, $pdf-out, $font-out) {   
 
-        my $font-file = 't/fonts/Vera.ttf';
-        my Font::FreeType::Face $face = $freetype.face($font-file);
-        my FT_Face $ft-face = $face.raw;
-        my Cairo::Font $font .= create(
-            $ft-face, :free-type,
-        );
-        .move_to(10, 10);
-        .set_font_size(10.0);
-        .set_font_face($font);
-        .show_text("Hello, ½world");
-    };
-    .show_page;
-    .finish;
+    given Cairo::Surface::PDF.create($pdf-out, 256, 256) {
+        given Cairo::Context.new($_) {
+
+            my Font::FreeType::Face $face = $freetype.face($font-in);
+            my FT_Face $ft-face = $face.raw;
+            my Cairo::Font $font .= create(
+                $ft-face, :free-type,
+            );
+            .move_to(10, 10);
+            .set_font_size(10.0);
+            .set_font_face($font);
+            .show_text("Hello, ½world");
+        };
+        .show_page;
+        .finish;
+    }
+
+    note "extracting font... $font-out";
+    use PDF::Reader;
+    my PDF::Reader $r .= new.open: $pdf-out;
+    $font-out.IO.open(:w).write: $r.ind-obj(7, 0).object.decoded;
 }
 
-my $font-file = "etc/cairo-subset.pdf";
-note "extracting font... $font-file";
+cairo-subset('t/fonts/Vera.ttf', 'etc/cairo-subset.pdf', 'etc/cairo-subset.ttf');
 
-use PDF::Reader;
-my PDF::Reader $r .= new.open: $font-file;
-"etc/cairo-subset.ttf".IO.open(:w).write: $r.ind-obj(7, 0).object.decoded;
-
+# note that Cairo extracts from otf to cff
+cairo-subset('t/fonts/Cantarell-Oblique.otf', 'etc/cairo-subset2.pdf', 'etc/cairo-subset.cff');
