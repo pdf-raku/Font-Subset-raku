@@ -80,6 +80,7 @@ method !subset-glyf-table {
     }
 
     $offsets[$.gids-len] = $glyphs-buf.bytes div 2;
+
     my Font::TTF::Table::GlyphIndex $loca .= new: :$offsets, :num-glyphs($.gids-len);
 
     $!ttf.upd($loca);

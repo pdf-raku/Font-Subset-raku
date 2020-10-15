@@ -19,7 +19,7 @@ sfnt_subset_create(FT_Face font, FT_ULong *charset, size_t len) {
     self->font = font;
     self->charset_len = 0;
     self->charset = calloc(len + 2, sizeof(FT_ULong));
-    // allow some extra space for compoent glyphs
+    // reserve extra space for component glyphs
     self->gids_size = len * 1.5 + 3;
     self->gids = calloc(self->gids_size, sizeof(FT_UInt));
     self->gids_len = 0;
