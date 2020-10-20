@@ -7,7 +7,6 @@
 #include FT_FONT_FORMATS_H
 
 struct _sfntSubset {
-    FT_Face font;
     // 1 - 1 mapping of existing characters and gids
     // charset_len <= gid_len
     FT_ULong *charset;
@@ -23,7 +22,7 @@ struct _sfntSubset {
 typedef struct _sfntSubset sfntSubset;
 typedef sfntSubset *sfntSubsetPtr;
 
-#define SFNT_SUBSET_WARN(msg) fprintf(stderr, __FILE__ ":%d: %s\n", __LINE__, (msg));
+#define FONT_SUBSET_WARN(msg) fprintf(stderr, __FILE__ ":%d: %s\n", __LINE__, (msg));
 
 #ifdef _WIN32
 #define DLLEXPORT __declspec(dllexport)
@@ -32,7 +31,7 @@ typedef sfntSubset *sfntSubsetPtr;
 #endif
 
 DLLEXPORT sfntSubsetPtr sfnt_subset_create(FT_Face, FT_ULong*, size_t);
-DLLEXPORT void sfnt_subset_fail(sfntSubsetPtr, const char*);
-DLLEXPORT void sfnt_subset_done(sfntSubsetPtr);
+DLLEXPORT void font_subset_fail(sfntSubsetPtr, const char*);
+DLLEXPORT void font_subset_done(sfntSubsetPtr);
 
 #endif /* __SFNT_SUBSET_H */

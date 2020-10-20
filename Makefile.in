@@ -12,16 +12,16 @@ debug :
 coverage :
 	%MAKE% "DBG=-fprofile-arcs -ftest-coverage" "LD_DBG=-coverage -lgcov" all
 
-resources/libraries/%LIB-NAME% : $(SRC)/sfnt_subset%O% $(SRC)/sfnt_glyph%O%
+resources/libraries/%LIB-NAME% : $(SRC)/font_subset%O% $(SRC)/font_subset_sfnt%O%
 	%LD% %LDSHARED% %LDFLAGS% %LDOUT%resources/libraries/%LIB-NAME% \
-	$(SRC)/sfnt_subset%O% $(SRC)/sfnt_glyph%O% \
+	$(SRC)/font_subset%O% $(SRC)/font_subset_sfnt%O% \
 	%LIB-LDFLAGS% $(LD_DBG) 
 
-$(SRC)/sfnt_subset%O% : $(SRC)/sfnt_subset.c $(SRC)/sfnt_subset.h
-	%CC% -I $(SRC) -c %CCSHARED% %CCFLAGS% %CCOUT%$(SRC)/sfnt_subset%O% $(SRC)/sfnt_subset.c %LIB-CFLAGS% $(DBG)
+$(SRC)/font_subset%O% : $(SRC)/font_subset.c $(SRC)/font_subset.h
+	%CC% -I $(SRC) -c %CCSHARED% %CCFLAGS% %CCOUT%$(SRC)/font_subset%O% $(SRC)/font_subset.c %LIB-CFLAGS% $(DBG)
 
-$(SRC)/sfnt_glyph%O% : $(SRC)/sfnt_glyph.c $(SRC)/sfnt_glyph.h  $(SRC)/sfnt_subset.h
-	%CC% -I $(SRC) -c %CCSHARED% %CCFLAGS% %CCOUT%$(SRC)/sfnt_glyph%O% $(SRC)/sfnt_glyph.c %LIB-CFLAGS% $(DBG)
+$(SRC)/font_subset_sfnt%O% : $(SRC)/font_subset_sfnt.c $(SRC)/font_subset_sfnt.h  $(SRC)/font_subset.h
+	%CC% -I $(SRC) -c %CCSHARED% %CCFLAGS% %CCOUT%$(SRC)/font_subset_sfnt%O% $(SRC)/font_subset_sfnt.c %LIB-CFLAGS% $(DBG)
 
 
 test : all

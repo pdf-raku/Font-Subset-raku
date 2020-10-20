@@ -11,7 +11,7 @@ use Font::TTF::Table::HoriHeader;
 use Font::TTF::Table::HoriMetrics;
 use Font::TTF::Table::VertHeader;
 use Font::TTF::Table::VertMetrics;
-use Font::Subset::TTF::Raw;
+use Font::Subset::Raw;
 use Font::FreeType;
 use Font::FreeType::Face;
 use Font::FreeType::Raw::Defs;
@@ -69,7 +69,6 @@ method !subset-glyf-table {
         my $end = $old-loca[$old-gid + 1];
         my UInt $len = $end - $offset;
         my $buf = $old-glyphs-buf.subbuf($offset, $len);
-        my $buf-old = $buf.clone;
         $offsets[$i] = $glyphs-buf.bytes div 2;
         # extract any unseen composite glyphs, update buffer references
         if $buf.bytes {
@@ -106,10 +105,10 @@ method !subset-vmtx-table {
 method !subset-cmap-format0 {
     my uint8 @glyphIndexArray[255];
 
-    for 0 ..^ $.charset-len {
+    for 0 ..^ min($.charset-len, 256) {
         my $ord := $.charset[$_];
-        last if $ord > 255 || $_ > 255;
-        @glyphIndexArray[$_] = $ord;
+        @glyphIndexArray[$_] = $ord
+            if $ord <= 255;
     }
 
     Font::TTF::Table::CMap::Format0.new: :@glyphIndexArray;
@@ -138,7 +137,7 @@ method !subset-cmap-format4 {
         $last-ord := $ord;
         $last-gid := $gid;
     }
-    # add missing glyph
+    # add missing glyph entry
     ++$seg;
     @startCode[$seg] = @endCode[$seg] = 0xFFFF;
     @idDelta[$seg] = 1;

@@ -1,10 +1,9 @@
-#include "sfnt_subset.h"
-#include "sfnt_glyph.h"
+#include "font_subset.h"
 #include <memory.h>
 #include <stdio.h>
 
 DLLEXPORT void
-sfnt_subset_fail(sfntSubsetPtr self, const char* msg) {
+font_subset_fail(sfntSubsetPtr self, const char* msg) {
     if (self->fail != NULL) {
         fprintf(stderr, "%s\n", self->fail);
         free(self->fail);
@@ -13,10 +12,9 @@ sfnt_subset_fail(sfntSubsetPtr self, const char* msg) {
 }
 
 DLLEXPORT sfntSubsetPtr
-sfnt_subset_create(FT_Face font, FT_ULong *charset, size_t len) {
+font_subset_create(FT_Face font, FT_ULong *charset, size_t len) {
     size_t i;
     sfntSubsetPtr self = (sfntSubsetPtr)malloc(sizeof(struct _sfntSubset));
-    self->font = font;
     self->charset_len = 0;
     self->charset = calloc(len + 2, sizeof(FT_ULong));
     // reserve extra space for component glyphs
@@ -51,12 +49,12 @@ static void _done(void** p) {
 }
 
 DLLEXPORT void
-sfnt_subset_done(sfntSubsetPtr self) {
+font_subset_done(sfntSubsetPtr self) {
 
     if (self->fail) {
         char msg[120];
         snprintf(msg, sizeof(msg), "uncaught failure on sfntSubsetPtr %p destruction: %s", self, self->fail);
-        SFNT_SUBSET_WARN(msg);
+        FONT_SUBSET_WARN(msg);
         _done((void**) &(self->fail) );
     }
     _done((void**) &(self->charset) );

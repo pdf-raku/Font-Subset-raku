@@ -1,13 +1,12 @@
-unit module Font::Subset::TTF::Raw;
+unit module Font::Subset::Raw;
 
 use Font::FreeType::Raw;
 use Font::FreeType::Raw::Defs;
-use Font::Subset::TTF::Defs;
+use Font::Subset::Defs;
 use NativeCall;
 
 class fontSubset is repr('CStruct') is export {
 
-    has FT_Face $.face;
     # characters and corresponding original gids 
     has CArray[FT_ULong] $.charset;
     has CArray[FT_UInt] $.gids;
@@ -18,11 +17,11 @@ class fontSubset is repr('CStruct') is export {
     has Pointer $.fail;
 
     our sub create(FT_Face, CArray[FT_ULong] $codes, size_t --> fontSubset)
-        is native($SFNT-SUBSET-LIB) is symbol('sfnt_subset_create') {*}
+        is native($SFNT-SUBSET-LIB) is symbol('font_subset_create') {*}
     method new(|) {...}
     method add-glyph-components(buf8, size_t --> int16)
-        is native($SFNT-SUBSET-LIB) is symbol('sfnt_glyph_add_components') {*}
-    method done is native($SFNT-SUBSET-LIB) is symbol('sfnt_subset_done') {*}
+        is native($SFNT-SUBSET-LIB) is symbol('font_subset_sfnt_add_glyph_components') {*}
+    method done is native($SFNT-SUBSET-LIB) is symbol('font_subset_done') {*}
 }
 
 
